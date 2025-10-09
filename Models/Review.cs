@@ -1,0 +1,17 @@
+﻿using System;
+
+namespace tunerate_api.Models
+{
+    public class Review
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Content { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public Guid UserId { get; set; }
+        public User User { get; set; }
+
+        public Guid AlbumId { get; set; }
+        public Album Album { get; set; }
+    }
+}
