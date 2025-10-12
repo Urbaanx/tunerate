@@ -1,0 +1,130 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "tunerate-api",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/Albums/search": {
+      "get": {
+        "tags": [
+          "Albums"
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/UserAlbums": {
+      "post": {
+        "tags": [
+          "UserAlbums"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "UserAlbums"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Users/sync": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlbumDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "artist": {
+            "type": "string",
+            "nullable": true
+          },
+          "artistId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "releaseDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "apiKey",
+        "description": "Enter 'Bearer' followed by your JWT token.",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
+}
