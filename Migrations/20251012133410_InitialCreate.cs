@@ -57,7 +57,7 @@ namespace tunerate_api.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     MusicBrainzId = table.Column<string>(type: "text", nullable: true),
-                    ReleaseYear = table.Column<int>(type: "integer", nullable: true),
+                    ReleaseDate = table.Column<DateTime>(type: "date", nullable: false),
                     CoverUrl = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ArtistId = table.Column<Guid>(type: "uuid", nullable: false)

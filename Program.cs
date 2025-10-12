@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Http.Features;
 using System.Security.Claims;
 using tunerate_api.Data;
+using tunerate_api.Services;
 
 
 namespace tunerate_api;
@@ -29,7 +30,7 @@ public class Program
                     NameClaimType = ClaimTypes.NameIdentifier
                 };
             });
-
+        builder.Services.AddHttpClient<MusicBrainzService>();
         builder.Services.AddControllers();
         builder.Services.AddSwaggerGen(c =>
         {
@@ -75,7 +76,7 @@ public class Program
 
         var app = builder.Build();
 
-        app.UseMiddleware<TokenDecodingMiddlewere>();
+        //app.UseMiddleware<TokenDecodingMiddlewere>();
         app.UseCors("AllowSpecificOrigin");
         
 

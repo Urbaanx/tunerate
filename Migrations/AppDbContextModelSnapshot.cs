@@ -40,8 +40,8 @@ namespace tunerate_api.Migrations
                     b.Property<string>("MusicBrainzId")
                         .HasColumnType("text");
 
-                    b.Property<int?>("ReleaseYear")
-                        .HasColumnType("integer");
+                    b.Property<DateTime>("ReleaseDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("Title")
                         .IsRequired()

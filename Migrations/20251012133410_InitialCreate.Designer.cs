@@ -12,7 +12,7 @@ using tunerate_api.Data;
 namespace tunerate_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251009145739_InitialCreate")]
+    [Migration("20251012133410_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -43,8 +43,8 @@ namespace tunerate_api.Migrations
                     b.Property<string>("MusicBrainzId")
                         .HasColumnType("text");
 
-                    b.Property<int?>("ReleaseYear")
-                        .HasColumnType("integer");
+                    b.Property<DateTime>("ReleaseDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("Title")
                         .IsRequired()
