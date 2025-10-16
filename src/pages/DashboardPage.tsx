@@ -36,6 +36,13 @@ const DashboardPage: React.FC = () => {
   }, [token, refetch]);
 
   const recentAlbums = Array.isArray(data) ? data.slice(0, 6) : [];
+  const albumCount = Array.isArray(data) ? data.length : 0;
+  const lastAddedDate =
+    Array.isArray(data) && data.length > 0
+      ? new Date(
+          Math.max(...data.map((a: any) => new Date(a.createdAt).getTime()))
+        ).toLocaleDateString("pl-PL")
+      : null;
 
   if (!isAuthenticated) {
     return (
@@ -53,13 +60,30 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white p-6">
-      <header className="max-w-6xl mx-auto mb-8">
-        <h1 className="text-4xl font-extrabold">Twój panel</h1>
-        <p className="text-gray-300 mt-2">
-          Witaj, {user?.name ?? user?.email}! Szybki dostęp do najważniejszych funkcji i Twojej kolekcji.
-        </p>
+      {/* === HEADER === */}
+      <header className="max-w-6xl mx-auto mb-8 flex items-center gap-4">
+        {user?.picture && (
+          <img
+            src={user.picture}
+            alt={user.name}
+            className="w-16 h-16 rounded-full border border-white/20 shadow-lg"
+          />
+        )}
+        <div>
+          <h1 className="text-4xl font-extrabold">Twój panel</h1>
+          <p className="text-gray-300 mt-1">
+            Witaj, {user?.name ?? user?.email}! 👋
+          </p>
+          {albumCount > 0 && (
+            <p className="text-sm text-gray-400 mt-1">
+              Masz <span className="text-blue-400 font-semibold">{albumCount}</span> albumów w kolekcji
+              {lastAddedDate && <> — ostatni dodano <span className="text-gray-300">{lastAddedDate}</span></>}.
+            </p>
+          )}
+        </div>
       </header>
 
+      {/* === NAV CARDS === */}
       <section className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-10">
         <a
           href="/search"
@@ -73,7 +97,8 @@ const DashboardPage: React.FC = () => {
           className="block rounded-xl bg-black/40 border border-white/10 p-6 hover:bg-black/50 transition"
         >
           <h2 className="text-2xl font-semibold mb-2">Moja kolekcja</h2>
-          <p className="text-gray-300">Przeglądaj i zarządzaj dodanymi albumami.</p>
+          <p className="text-gray-300 mb-2">Przeglądaj i zarządzaj dodanymi albumami.</p>
+          <p className="text-sm text-gray-400">🎧 {albumCount} albumów</p>
         </a>
         <div className="rounded-xl bg-black/40 border border-white/10 p-6">
           <h2 className="text-2xl font-semibold mb-2">Statystyki (wkrótce)</h2>
@@ -81,6 +106,7 @@ const DashboardPage: React.FC = () => {
         </div>
       </section>
 
+      {/* === RECENT ALBUMS === */}
       <section className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-2xl font-bold">Ostatnio dodane do kolekcji</h3>

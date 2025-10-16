@@ -18,6 +18,11 @@ export interface AlbumDto {
   coverUrl?: string | null;
 }
 
+export interface ReviewDto {
+  /** @nullable */
+  content?: string | null;
+}
+
 export type GetApiAlbumsSearchParams = {
 query?: string;
 };

@@ -8,7 +8,6 @@ const CollectionPage: React.FC = () => {
   const { isAuthenticated, getAccessTokenSilently, loginWithRedirect } = useAuth0();
   const [token, setToken] = useState<string | null>(null);
 
-  // pobierz token Auth0
   useEffect(() => {
     if (!isAuthenticated) return;
     getAccessTokenSilently()
@@ -19,11 +18,18 @@ const CollectionPage: React.FC = () => {
       });
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  const { data, isLoading, isError, refetch } = useGetApiUserAlbums<any, unknown>({
-    request: token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined,
-  });
+  const queryOptions = token
+    ? {
+        request: { headers: { Authorization: `Bearer ${token}` } },
+        query: { enabled: true },
+      }
+    : {
+        query: { enabled: false },
+      };
+
+  const { data, isLoading, isError, refetch } = useGetApiUserAlbums<any, unknown>(
+    queryOptions
+  );
 
   useEffect(() => {
     if (token) refetch();

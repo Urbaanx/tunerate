@@ -52,12 +52,14 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
           )}
         </div>
 
-        <button
-          onClick={handleAddClick}
-          className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium py-2 rounded-lg hover:opacity-90 transition"
-        >
-          ➕ Dodaj do kolekcji
-        </button>
+        {onAddToCollection && (
+          <button
+            onClick={handleAddClick}
+            className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium py-2 rounded-lg hover:opacity-90 transition"
+          >
+            ➕ Dodaj do kolekcji
+          </button>
+        )}
       </div>
     </div>
   );

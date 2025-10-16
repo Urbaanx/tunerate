@@ -25,7 +25,8 @@ import type {
 
 import type {
   AlbumDto,
-  GetApiAlbumsSearchParams
+  GetApiAlbumsSearchParams,
+  ReviewDto
 } from './tunerateApi.schemas';
 
 import { axiosInstance } from '../axiosInstance';
@@ -123,6 +124,238 @@ export function useGetApiAlbumsSearch<TData = Awaited<ReturnType<typeof getApiAl
 
 
 
+export const getApiAlbumsId = (
+    id: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Albums/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiAlbumsIdQueryKey = (id?: string,) => {
+    return [
+    `/api/Albums/${id}`
+    ] as const;
+    }
+
+    
+export const getGetApiAlbumsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAlbumsId>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAlbumsIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAlbumsId>>> = ({ signal }) => getApiAlbumsId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiAlbumsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAlbumsId>>>
+export type GetApiAlbumsIdQueryError = ErrorType<unknown>
+
+
+export function useGetApiAlbumsId<TData = Awaited<ReturnType<typeof getApiAlbumsId>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiAlbumsId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiAlbumsId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiAlbumsId<TData = Awaited<ReturnType<typeof getApiAlbumsId>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiAlbumsId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiAlbumsId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiAlbumsId<TData = Awaited<ReturnType<typeof getApiAlbumsId>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiAlbumsId<TData = Awaited<ReturnType<typeof getApiAlbumsId>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiAlbumsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getApiAlbumsIdReviews = (
+    id: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Albums/${id}/reviews`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiAlbumsIdReviewsQueryKey = (id?: string,) => {
+    return [
+    `/api/Albums/${id}/reviews`
+    ] as const;
+    }
+
+    
+export const getGetApiAlbumsIdReviewsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAlbumsIdReviewsQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>> = ({ signal }) => getApiAlbumsIdReviews(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiAlbumsIdReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>>
+export type GetApiAlbumsIdReviewsQueryError = ErrorType<unknown>
+
+
+export function useGetApiAlbumsIdReviews<TData = Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiAlbumsIdReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getApiAlbumsIdReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiAlbumsIdReviews<TData = Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiAlbumsIdReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getApiAlbumsIdReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiAlbumsIdReviews<TData = Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiAlbumsIdReviews<TData = Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsIdReviews>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiAlbumsIdReviewsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const postApiAlbumsIdReviews = (
+    id: string,
+    reviewDto: BodyType<ReviewDto>,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Albums/${id}/reviews`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: reviewDto, signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAlbumsIdReviewsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAlbumsIdReviews>>, TError,{id: string;data: BodyType<ReviewDto>}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAlbumsIdReviews>>, TError,{id: string;data: BodyType<ReviewDto>}, TContext> => {
+
+const mutationKey = ['postApiAlbumsIdReviews'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAlbumsIdReviews>>, {id: string;data: BodyType<ReviewDto>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAlbumsIdReviews(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAlbumsIdReviewsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAlbumsIdReviews>>>
+    export type PostApiAlbumsIdReviewsMutationBody = BodyType<ReviewDto>
+    export type PostApiAlbumsIdReviewsMutationError = ErrorType<unknown>
+
+    export const usePostApiAlbumsIdReviews = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAlbumsIdReviews>>, TError,{id: string;data: BodyType<ReviewDto>}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAlbumsIdReviews>>,
+        TError,
+        {id: string;data: BodyType<ReviewDto>},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAlbumsIdReviewsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 export const postApiUserAlbums = (
     albumDto: BodyType<AlbumDto>,
  options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
@@ -268,6 +501,62 @@ export function useGetApiUserAlbums<TData = Awaited<ReturnType<typeof getApiUser
 
 
 
+export const deleteApiUserAlbumsAlbumId = (
+    albumId: string,
+ options?: SecondParameter<typeof axiosInstance>,) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/UserAlbums/${albumId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiUserAlbumsAlbumIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserAlbumsAlbumId>>, TError,{albumId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserAlbumsAlbumId>>, TError,{albumId: string}, TContext> => {
+
+const mutationKey = ['deleteApiUserAlbumsAlbumId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiUserAlbumsAlbumId>>, {albumId: string}> = (props) => {
+          const {albumId} = props ?? {};
+
+          return  deleteApiUserAlbumsAlbumId(albumId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiUserAlbumsAlbumIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiUserAlbumsAlbumId>>>
+    
+    export type DeleteApiUserAlbumsAlbumIdMutationError = ErrorType<unknown>
+
+    export const useDeleteApiUserAlbumsAlbumId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserAlbumsAlbumId>>, TError,{albumId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiUserAlbumsAlbumId>>,
+        TError,
+        {albumId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiUserAlbumsAlbumIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 export const postApiUsersSync = (
     
  options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
