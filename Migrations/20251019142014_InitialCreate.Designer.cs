@@ -12,7 +12,7 @@ using tunerate_api.Data;
 namespace tunerate_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251012133410_InitialCreate")]
+    [Migration("20251019142014_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -34,21 +34,24 @@ namespace tunerate_api.Migrations
                     b.Property<Guid>("ArtistId")
                         .HasColumnType("uuid");
 
+                    b.Property<double>("AverageRating")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("CoverUrl")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("MusicBrainzId")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(36)");
 
                     b.Property<DateTime>("ReleaseDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
@@ -90,33 +93,6 @@ namespace tunerate_api.Migrations
                     b.ToTable("Artists");
                 });
 
-            modelBuilder.Entity("tunerate_api.Models.Rating", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AlbumId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Score")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AlbumId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Ratings");
-                });
-
             modelBuilder.Entity("tunerate_api.Models.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -132,6 +108,9 @@ namespace tunerate_api.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -234,25 +213,6 @@ namespace tunerate_api.Migrations
                     b.Navigation("Tag");
                 });
 
-            modelBuilder.Entity("tunerate_api.Models.Rating", b =>
-                {
-                    b.HasOne("tunerate_api.Models.Album", "Album")
-                        .WithMany("Ratings")
-                        .HasForeignKey("AlbumId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("tunerate_api.Models.User", "User")
-                        .WithMany("Ratings")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Album");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("tunerate_api.Models.Review", b =>
                 {
                     b.HasOne("tunerate_api.Models.Album", "Album")
@@ -295,8 +255,6 @@ namespace tunerate_api.Migrations
                 {
                     b.Navigation("AlbumTags");
 
-                    b.Navigation("Ratings");
-
                     b.Navigation("Reviews");
 
                     b.Navigation("UserAlbums");
@@ -314,8 +272,6 @@ namespace tunerate_api.Migrations
 
             modelBuilder.Entity("tunerate_api.Models.User", b =>
                 {
-                    b.Navigation("Ratings");
-
                     b.Navigation("Reviews");
 
                     b.Navigation("UserAlbums");

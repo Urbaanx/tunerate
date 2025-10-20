@@ -28,6 +28,10 @@ public class Program
                     NameClaimType = ClaimTypes.NameIdentifier
                 };
             });
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy("admin", policy => policy.Requirements.Add(new HasScopeRequirement("admin", domain)));
+        });
         builder.Services.AddHttpClient<MusicBrainzService>();
         builder.Services.AddControllers();
         builder.Services.AddSwaggerGen(c =>
@@ -72,11 +76,9 @@ public class Program
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
         builder.Services.AddScoped<AlbumService>();
-
-
         var app = builder.Build();
 
-        //app.UseMiddleware<TokenDecodingMiddlewere>();
+        app.UseMiddleware<TokenDecodingMiddlewere>();
         app.UseCors("AllowSpecificOrigin");
         
 

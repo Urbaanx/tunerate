@@ -38,7 +38,6 @@ namespace tunerate_api.Controllers
         {
             var album = await _context.Albums
                 .Include(a => a.Artist)
-                .Include(a => a.Ratings)
                 .Include(a => a.Reviews)
                     .ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(a => a.Id == id);
@@ -46,8 +45,8 @@ namespace tunerate_api.Controllers
             if (album == null)
                 return NotFound("Nie znaleziono albumu.");
 
-            var avgRating = album.Ratings.Any()
-                ? album.Ratings.Average(r => r.Score)
+            var avgRating = album.Reviews.Any()
+                ? album.Reviews.Average(r => r.Score)
                 : (double?)null;
 
             var result = new
@@ -106,27 +105,51 @@ namespace tunerate_api.Controllers
             if (user == null)
                 return NotFound("Nie znaleziono użytkownika.");
 
-            var album = await _context.Albums.FirstOrDefaultAsync(a => a.Id == id);
+            var album = await _context.Albums
+                .Include(a => a.Reviews)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
             if (album == null)
                 return NotFound("Nie znaleziono albumu.");
 
-            var review = new Review
+            // 🔹 Sprawdź, czy użytkownik już dodał recenzję
+            var existing = await _context.Reviews.FirstOrDefaultAsync(r => r.AlbumId == id && r.UserId == user.Id);
+            if (existing != null)
             {
-                AlbumId = id,
-                UserId = user.Id,
-                Content = reviewDto.Content
-            };
+                existing.Content = reviewDto.Content;
+                existing.Score = reviewDto.Score;
+                existing.CreatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                var review = new Review
+                {
+                    AlbumId = id,
+                    UserId = user.Id,
+                    Content = reviewDto.Content,
+                    Score = reviewDto.Score
+                };
+                _context.Reviews.Add(review);
+            }
 
-            _context.Reviews.Add(review);
+            await _context.SaveChangesAsync();
+
+            // 🔹 Aktualizuj średnią ocenę albumu
+            album.AverageRating = album.Reviews.Average(r => r.Score);
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
-                review.Id,
-                review.Content,
-                User = user.Nickname,
-                review.CreatedAt
+                AlbumId = album.Id,
+                AverageRating = album.AverageRating,
+                Review = new
+                {
+                    Content = reviewDto.Content,
+                    Score = reviewDto.Score,
+                    User = user.Nickname
+                }
             });
         }
+
     }
 }

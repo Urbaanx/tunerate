@@ -12,7 +12,6 @@ namespace tunerate_api.Data
         public DbSet<Album> Albums { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<AlbumTag> AlbumTags { get; set; }
-        public DbSet<Rating> Ratings { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<UserAlbum> UserAlbums { get; set; }
 

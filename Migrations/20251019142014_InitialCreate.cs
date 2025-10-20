@@ -55,12 +55,13 @@ namespace tunerate_api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "text", nullable: false),
-                    MusicBrainzId = table.Column<string>(type: "text", nullable: true),
+                    Title = table.Column<string>(type: "varchar(255)", nullable: false),
+                    MusicBrainzId = table.Column<string>(type: "varchar(36)", nullable: true),
                     ReleaseDate = table.Column<DateTime>(type: "date", nullable: false),
-                    CoverUrl = table.Column<string>(type: "text", nullable: true),
+                    CoverUrl = table.Column<string>(type: "varchar(255)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ArtistId = table.Column<Guid>(type: "uuid", nullable: false)
+                    ArtistId = table.Column<Guid>(type: "uuid", nullable: false),
+                    AverageRating = table.Column<double>(type: "double precision", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -98,38 +99,12 @@ namespace tunerate_api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Ratings",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Score = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    AlbumId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Ratings", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Ratings_Albums_AlbumId",
-                        column: x => x.AlbumId,
-                        principalTable: "Albums",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Ratings_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Reviews",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
+                    Score = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     AlbumId = table.Column<Guid>(type: "uuid", nullable: false)
@@ -188,16 +163,6 @@ namespace tunerate_api.Migrations
                 column: "TagId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Ratings_AlbumId",
-                table: "Ratings",
-                column: "AlbumId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Ratings_UserId",
-                table: "Ratings",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Reviews_AlbumId",
                 table: "Reviews",
                 column: "AlbumId");
@@ -218,9 +183,6 @@ namespace tunerate_api.Migrations
         {
             migrationBuilder.DropTable(
                 name: "AlbumTags");
-
-            migrationBuilder.DropTable(
-                name: "Ratings");
 
             migrationBuilder.DropTable(
                 name: "Reviews");

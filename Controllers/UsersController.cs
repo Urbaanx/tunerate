@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using tunerate_api.Data;
 using tunerate_api.Models;
+using RestSharp;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace tunerate_api.Controllers
 {
@@ -13,36 +16,74 @@ namespace tunerate_api.Controllers
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _conf;
+        private readonly Auth0TokenSettings? _tokenSettings;
 
-        public UsersController(AppDbContext context)
+        public UsersController(AppDbContext context, IConfiguration config)
         {
             _context = context;
+            _conf = config;
+            _tokenSettings = _conf.GetSection("Auth0ManagementToken").Get<Auth0TokenSettings>();
         }
-
         [HttpPost("sync")]
         public async Task<IActionResult> SyncUser()
         {
             var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            var nickname = User.FindFirst("nickname")?.Value 
-                           ?? User.FindFirst("name")?.Value 
-                           ?? "Anon";
-
             if (auth0Id == null) return Unauthorized("Brak Auth0 ID.");
-
+            
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-            if (user == null)
+            if (user != null) return Ok(user);
+            
+            var client = new RestClient($"https://{_conf["Auth0:Domain"]}/api/v2/users/{auth0Id}");
+            
+            var token = GetAuth0ManagementToken();
+            
+            var request = new RestRequest
             {
-                user = new User
-                {
-                    Auth0Id = auth0Id,
-                    Nickname = nickname
-                };
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
-            }
+                Method = Method.Get
+            };
+            request.AddHeader("authorization", $"Bearer {token}");
+
+            var response = client.Execute(request);
+            if (response.Content == null) return BadRequest("Nie udało się pobrać danych użytkownika z Auth0.");
+            var json = JsonSerializer.Deserialize<Auth0UserResponse>(response.Content);
+
+            user = new User
+            {
+                Auth0Id = auth0Id,
+                Nickname = json?.Name ?? json?.Nickname ?? json?.Email ?? "Anon"
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
 
             return Ok(user);
         }
+
+        private JsonElement? GetAuth0ManagementToken()
+        {
+            var client = new RestClient($"https://{_conf["Auth0:Domain"]}/oauth/token");
+            var request = new RestRequest
+            {
+                Method = Method.Post
+            };
+            request.AddHeader("content-type", "application/json");
+            var jsonBody = JsonSerializer.Serialize(_tokenSettings);
+            request.AddParameter("application/json", jsonBody, ParameterType.RequestBody);
+            var response = client.Execute(request);
+            if(response.Content == null) return null;
+            
+            return JsonSerializer.Deserialize<JsonElement>(response.Content).GetProperty("access_token");
+        }
+    }
+    
+    public class Auth0UserResponse
+    {
+        [JsonPropertyName("nickname")]
+        public string? Nickname { get; set; }
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+        [JsonPropertyName("email")]
+        public string? Email { get; set; }
     }
 }
