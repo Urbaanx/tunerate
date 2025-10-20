@@ -23,6 +23,7 @@ const AlbumDetailsPage: React.FC = () => {
   const [token, setToken] = useState<string | null>(null);
   const [isInCollection, setIsInCollection] = useState<boolean>(false);
   const [newReview, setNewReview] = useState<string>("");
+  const [rating, setRating] = useState<number>(0);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -42,7 +43,6 @@ const AlbumDetailsPage: React.FC = () => {
       : undefined,
   });
 
-
   const { data: userAlbums, refetch: refetchUserAlbums } = useGetApiUserAlbums<
     any,
     unknown
@@ -52,7 +52,6 @@ const AlbumDetailsPage: React.FC = () => {
       ? { headers: { Authorization: `Bearer ${token}` } }
       : undefined,
   });
-
 
   const {
     data: reviews,
@@ -72,10 +71,7 @@ const AlbumDetailsPage: React.FC = () => {
       : undefined,
   });
 
-  const postingReview = Boolean((postReviewMutation as any)?.isLoading);
-
   const { mutateAsync: addAlbum } = usePostApiUserAlbums();
-
   const { mutateAsync: removeAlbum } = useDeleteApiUserAlbumsAlbumId();
 
   useEffect(() => {
@@ -90,9 +86,12 @@ const AlbumDetailsPage: React.FC = () => {
 
     try {
       if (isInCollection) {
-        await removeAlbum({ albumId: album.id }, {
-          request: { headers: { Authorization: `Bearer ${token}` } },
-        } as any);
+        await removeAlbum(
+          { albumId: album.id },
+          {
+            request: { headers: { Authorization: `Bearer ${token}` } },
+          } as any
+        );
         setIsInCollection(false);
       } else {
         await addAlbum(
@@ -117,7 +116,7 @@ const AlbumDetailsPage: React.FC = () => {
         setIsInCollection(true);
       }
 
-      await refetchUserAlbums(); 
+      await refetchUserAlbums();
       if (refetchReviews) await refetchReviews();
     } catch (err) {
       console.error("❌ Błąd przy aktualizacji kolekcji:", err);
@@ -126,7 +125,10 @@ const AlbumDetailsPage: React.FC = () => {
   };
 
   const handleSubmitReview = async () => {
-    if (!id || !newReview.trim()) return;
+    if (!id || !newReview.trim() || rating <= 0) {
+      alert("Uzupełnij treść i wybierz ocenę przed wysłaniem.");
+      return;
+    }
     if (!isInCollection) {
       alert("Dodaj album do kolekcji, aby móc dodać recenzję.");
       return;
@@ -135,21 +137,17 @@ const AlbumDetailsPage: React.FC = () => {
     try {
       let t = token;
       if (!t) {
-        try {
-          t = await getAccessTokenSilently();
-          setToken(t ?? null);
-        } catch (err) {
-          console.error("Failed to get token for review:", err);
-          alert("Nie można pobrać tokenu. Zaloguj się ponownie.");
-          return;
-        }
+        t = await getAccessTokenSilently();
+        setToken(t ?? null);
       }
 
       await postReviewMutation.mutateAsync({
         id,
-        data: { content: newReview.trim() },
+        data: { content: newReview.trim(), score: rating },
       });
+
       setNewReview("");
+      setRating(0);
       if (refetchReviews) await refetchReviews();
     } catch (err) {
       console.error("Błąd dodawania recenzji:", err);
@@ -208,14 +206,13 @@ const AlbumDetailsPage: React.FC = () => {
             <div className="flex items-center mb-4">
               <Star className="text-yellow-400 w-5 h-5 mr-1" />
               <span className="text-lg font-semibold">
-                {album.averageRating ? album.averageRating.toFixed(1) : "—"} /
-                10
+                {album.averageRating ? album.averageRating.toFixed(1) : "—"} / 10
               </span>
             </div>
 
             <button
               onClick={handleToggleCollection}
-              className={`px-6 py-3 rounded-ld font-medium transition ${
+              className={`px-6 py-3 rounded-lg font-medium transition ${
                 isInCollection
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-blue-600 hover:bg-blue-700"
@@ -230,9 +227,8 @@ const AlbumDetailsPage: React.FC = () => {
         <div className="bg-black/40 p-6 rounded-2xl border border-white/10">
           <h2 className="text-2xl font-semibold mb-4">Recenzje użytkowników</h2>
 
-          {/* Formularz dodawania recenzji — widoczny tylko gdy album jest w kolekcji */}
           {isInCollection ? (
-            <div className="mb-4">
+            <div className="mb-6">
               <textarea
                 value={newReview}
                 onChange={(e) => setNewReview(e.target.value)}
@@ -240,13 +236,32 @@ const AlbumDetailsPage: React.FC = () => {
                 placeholder="Napisz recenzję..."
                 className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none"
               />
-              <div className="flex mt-2">
+
+              {/* Wybór oceny */}
+              <div className="flex items-center mt-3 space-x-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                  <Star
+                    key={value}
+                    className={`cursor-pointer w-6 h-6 ${
+                      value <= rating
+                        ? "text-yellow-400"
+                        : "text-gray-600 hover:text-yellow-300"
+                    }`}
+                    onClick={() => setRating(value)}
+                  />
+                ))}
+                <span className="ml-2 text-sm text-gray-300">
+                  {rating > 0 ? `${rating}/10` : "Wybierz ocenę"}
+                </span>
+              </div>
+
+              <div className="flex mt-3">
                 <button
                   onClick={handleSubmitReview}
-                  disabled={postingReview || !newReview.trim()}
+                  disabled={!newReview.trim() || rating <= 0}
                   className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white"
                 >
-                  {postingReview ? "Wysyłanie..." : "Dodaj recenzję"}
+                  Dodaj recenzję
                 </button>
               </div>
             </div>
@@ -274,18 +289,12 @@ const AlbumDetailsPage: React.FC = () => {
                 >
                   <div className="flex items-center mb-2">
                     <User className="w-4 h-4 mr-2 text-gray-400" />
-                    <span className="font-semibold">
-                      {review.user ?? review.User}
-                    </span>
-                    <span className="ml-auto text-xs text-gray-500">
-                      {review.createdAt
-                        ? new Date(review.createdAt).toLocaleString()
-                        : ""}
+                    <span className="font-semibold">{review.user}</span>
+                    <span className="ml-auto text-yellow-400">
+                      {review.score ? `${review.score}/10` : ""}
                     </span>
                   </div>
-                  <p className="text-gray-300">
-                    {review.content ?? review.Content}
-                  </p>
+                  <p className="text-gray-300">{review.content}</p>
                 </li>
               ))}
             </ul>

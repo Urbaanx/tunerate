@@ -21,6 +21,7 @@ export interface AlbumDto {
 export interface ReviewDto {
   /** @nullable */
   content?: string | null;
+  score?: number;
 }
 
 export type GetApiAlbumsSearchParams = {

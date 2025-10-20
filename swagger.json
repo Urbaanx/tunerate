@@ -227,6 +227,10 @@
           "content": {
             "type": "string",
             "nullable": true
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
