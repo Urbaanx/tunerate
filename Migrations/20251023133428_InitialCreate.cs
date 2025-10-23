@@ -61,7 +61,7 @@ namespace tunerate_api.Migrations
                     CoverUrl = table.Column<string>(type: "varchar(255)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ArtistId = table.Column<Guid>(type: "uuid", nullable: false),
-                    AverageRating = table.Column<double>(type: "double precision", nullable: false)
+                    AverageRating = table.Column<double>(type: "double precision", nullable: true)
                 },
                 constraints: table =>
                 {

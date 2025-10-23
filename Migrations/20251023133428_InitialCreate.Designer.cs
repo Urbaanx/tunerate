@@ -12,7 +12,7 @@ using tunerate_api.Data;
 namespace tunerate_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251019142014_InitialCreate")]
+    [Migration("20251023133428_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -34,7 +34,7 @@ namespace tunerate_api.Migrations
                     b.Property<Guid>("ArtistId")
                         .HasColumnType("uuid");
 
-                    b.Property<double>("AverageRating")
+                    b.Property<double?>("AverageRating")
                         .HasColumnType("double precision");
 
                     b.Property<string>("CoverUrl")

@@ -20,7 +20,7 @@ namespace tunerate_api.Models
         public Guid ArtistId { get; set; }
         public required Artist Artist { get; set; }
         
-        public double AverageRating { get; set; }
+        public double? AverageRating { get; set; }
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<AlbumTag> AlbumTags { get; set; } = new List<AlbumTag>();
         public ICollection<UserAlbum> UserAlbums { get; set; } = new List<UserAlbum>();

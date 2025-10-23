@@ -31,7 +31,7 @@ namespace tunerate_api.Migrations
                     b.Property<Guid>("ArtistId")
                         .HasColumnType("uuid");
 
-                    b.Property<double>("AverageRating")
+                    b.Property<double?>("AverageRating")
                         .HasColumnType("double precision");
 
                     b.Property<string>("CoverUrl")
