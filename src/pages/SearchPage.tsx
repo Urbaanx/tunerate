@@ -160,6 +160,7 @@ const SearchPage: React.FC = () => {
           <AlbumCard
             key={a.id ?? a.musicBrainzId ?? a.title}
             album={{
+              id: a.id,
               title: a.title ?? "",
               artist: a.artist?.name ?? a.artist ?? "",
               artistId: a.artistId ?? "00000000-0000-0000-0000-000000000000",

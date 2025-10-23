@@ -8,8 +8,10 @@ import {
   usePostApiUserAlbums,
   useDeleteApiUserAlbumsAlbumId,
   usePostApiAlbumsIdReviews,
+  usePutApiAlbumsAlbumIdReviewsReviewId,
+  useDeleteApiAlbumsAlbumIdReviewsReviewId,
 } from "../api/endpoints/tunerateApi";
-import { Loader2, Star, User } from "lucide-react";
+import { Loader2, Star, User, Edit2, Trash2, X, Check } from "lucide-react";
 
 const AlbumDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,12 +20,16 @@ const AlbumDetailsPage: React.FC = () => {
     isLoading: authLoading,
     getAccessTokenSilently,
     loginWithRedirect,
+    user,
   } = useAuth0();
 
   const [token, setToken] = useState<string | null>(null);
   const [isInCollection, setIsInCollection] = useState<boolean>(false);
   const [newReview, setNewReview] = useState<string>("");
   const [rating, setRating] = useState<number>(0);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState<string>("");
+  const [editRating, setEditRating] = useState<number>(0);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -66,6 +72,16 @@ const AlbumDetailsPage: React.FC = () => {
   });
 
   const postReviewMutation = usePostApiAlbumsIdReviews({
+    request: token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : undefined,
+  });
+  const putReviewMutation = usePutApiAlbumsAlbumIdReviewsReviewId({
+    request: token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : undefined,
+  });
+  const deleteReviewMutation = useDeleteApiAlbumsAlbumIdReviewsReviewId({
     request: token
       ? { headers: { Authorization: `Bearer ${token}` } }
       : undefined,
@@ -155,6 +171,48 @@ const AlbumDetailsPage: React.FC = () => {
     }
   };
 
+  const handleEditReview = async (reviewId: string) => {
+    if (!editContent.trim() || editRating <= 0) {
+      alert("Uzupełnij treść i ocenę.");
+      return;
+    }
+
+    try {
+      await putReviewMutation.mutateAsync({
+        albumId: id!,
+        reviewId,
+        data: { content: editContent.trim(), score: editRating },
+      });
+
+      setEditingReviewId(null);
+      setEditContent("");
+      setEditRating(0);
+      if (refetchReviews) await refetchReviews();
+    } catch (err) {
+      console.error("❌ Błąd edycji recenzji:", err);
+      alert("Nie udało się zaktualizować recenzji.");
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!window.confirm("Czy na pewno chcesz usunąć tę recenzję?")) return;
+
+    try {
+      await deleteReviewMutation.mutateAsync({ albumId: id!, reviewId });
+      if (refetchReviews) await refetchReviews();
+    } catch (err) {
+      console.error("❌ Błąd usuwania recenzji:", err);
+      alert("Nie udało się usunąć recenzji.");
+    }
+  };
+
+  // Dodane: formatuje datę w postaci YYYY-MM-DD, usuwa część czasu "T..."
+  const formatDate = (d?: string | null) => {
+    if (!d) return null;
+    const idx = d.indexOf("T");
+    return idx !== -1 ? d.slice(0, idx) : d;
+  };
+
   if (authLoading || albumLoading) {
     return (
       <div className="flex justify-center items-center h-screen text-white">
@@ -186,6 +244,8 @@ const AlbumDetailsPage: React.FC = () => {
     );
   }
 
+  const currentUserAuth0Id = user?.sub;
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white p-6">
       <div className="max-w-5xl mx-auto">
@@ -200,7 +260,7 @@ const AlbumDetailsPage: React.FC = () => {
             <h1 className="text-4xl font-extrabold mb-2">{album.title}</h1>
             <p className="text-xl text-gray-300 mb-2">{album.artist}</p>
             <p className="text-sm text-gray-400 mb-4">
-              Data wydania: {album.releaseDate || "Nieznana"}
+              Data wydania: {formatDate(album.releaseDate) || "Nieznana"}
             </p>
 
             <div className="flex items-center mb-4">
@@ -227,7 +287,7 @@ const AlbumDetailsPage: React.FC = () => {
         <div className="bg-black/40 p-6 rounded-2xl border border-white/10">
           <h2 className="text-2xl font-semibold mb-4">Recenzje użytkowników</h2>
 
-          {isInCollection ? (
+          {isInCollection && (
             <div className="mb-6">
               <textarea
                 value={newReview}
@@ -237,19 +297,21 @@ const AlbumDetailsPage: React.FC = () => {
                 className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none"
               />
 
-              {/* Wybór oceny */}
               <div className="flex items-center mt-3 space-x-2">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
-                  <Star
-                    key={value}
-                    className={`cursor-pointer w-6 h-6 ${
-                      value <= rating
-                        ? "text-yellow-400"
-                        : "text-gray-600 hover:text-yellow-300"
-                    }`}
-                    onClick={() => setRating(value)}
-                  />
-                ))}
+                {[...Array(10)].map((_, i) => {
+                  const value = i + 1;
+                  return (
+                    <Star
+                      key={value}
+                      className={`cursor-pointer w-6 h-6 ${
+                        value <= rating
+                          ? "text-yellow-400"
+                          : "text-gray-600 hover:text-yellow-300"
+                      }`}
+                      onClick={() => setRating(value)}
+                    />
+                  );
+                })}
                 <span className="ml-2 text-sm text-gray-300">
                   {rating > 0 ? `${rating}/10` : "Wybierz ocenę"}
                 </span>
@@ -265,10 +327,6 @@ const AlbumDetailsPage: React.FC = () => {
                 </button>
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-gray-400 mb-4">
-              Dodaj album do kolekcji, aby napisać recenzję.
-            </p>
           )}
 
           {reviewsLoading ? (
@@ -294,7 +352,72 @@ const AlbumDetailsPage: React.FC = () => {
                       {review.score ? `${review.score}/10` : ""}
                     </span>
                   </div>
-                  <p className="text-gray-300">{review.content}</p>
+
+                  {editingReviewId === review.id ? (
+                    <>
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700 mb-2"
+                      />
+                      <div className="flex items-center mb-2 space-x-2">
+                        {[...Array(10)].map((_, i) => {
+                          const value = i + 1;
+                          return (
+                            <Star
+                              key={value}
+                              className={`cursor-pointer w-5 h-5 ${
+                                value <= editRating
+                                  ? "text-yellow-400"
+                                  : "text-gray-600 hover:text-yellow-300"
+                              }`}
+                              onClick={() => setEditRating(value)}
+                            />
+                          );
+                        })}
+                        <span className="ml-2 text-sm text-gray-300">
+                          {editRating}/10
+                        </span>
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => setEditingReviewId(null)}
+                          className="px-3 py-1 bg-gray-700 hover:bg-gray-800 rounded-lg flex items-center"
+                        >
+                          <X className="w-4 h-4 mr-1" /> Anuluj
+                        </button>
+                        <button
+                          onClick={() => handleEditReview(review.id)}
+                          className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center"
+                        >
+                          <Check className="w-4 h-4 mr-1" /> Zapisz
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-gray-300">{review.content}</p>
+                  )}
+
+                  {review.auth0Id === currentUserAuth0Id && editingReviewId !== review.id && (
+                    <div className="flex justify-end space-x-3 mt-2">
+                      <button
+                        onClick={() => {
+                          setEditingReviewId(review.id);
+                          setEditContent(review.content);
+                          setEditRating(review.score);
+                        }}
+                        className="flex items-center text-sm text-blue-400 hover:text-blue-500"
+                      >
+                        <Edit2 className="w-4 h-4 mr-1" /> Edytuj
+                      </button>
+                      <button
+                        onClick={() => handleDeleteReview(review.id)}
+                        className="flex items-center text-sm text-red-400 hover:text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" /> Usuń
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

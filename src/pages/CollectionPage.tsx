@@ -74,6 +74,7 @@ const CollectionPage: React.FC = () => {
           <AlbumCard
             key={album.id}
             album={{
+              id: album.id,
               title: album.title,
               artist: album.artist,
               coverUrl: album.coverUrl,

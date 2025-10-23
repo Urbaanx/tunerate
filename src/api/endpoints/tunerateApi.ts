@@ -356,6 +356,123 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(mutationOptions, queryClient);
     }
     
+export const putApiAlbumsAlbumIdReviewsReviewId = (
+    albumId: string,
+    reviewId: string,
+    reviewDto: BodyType<ReviewDto>,
+ options?: SecondParameter<typeof axiosInstance>,) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Albums/${albumId}/reviews/${reviewId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: reviewDto
+    },
+      options);
+    }
+  
+
+
+export const getPutApiAlbumsAlbumIdReviewsReviewIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAlbumsAlbumIdReviewsReviewId>>, TError,{albumId: string;reviewId: string;data: BodyType<ReviewDto>}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAlbumsAlbumIdReviewsReviewId>>, TError,{albumId: string;reviewId: string;data: BodyType<ReviewDto>}, TContext> => {
+
+const mutationKey = ['putApiAlbumsAlbumIdReviewsReviewId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAlbumsAlbumIdReviewsReviewId>>, {albumId: string;reviewId: string;data: BodyType<ReviewDto>}> = (props) => {
+          const {albumId,reviewId,data} = props ?? {};
+
+          return  putApiAlbumsAlbumIdReviewsReviewId(albumId,reviewId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAlbumsAlbumIdReviewsReviewIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAlbumsAlbumIdReviewsReviewId>>>
+    export type PutApiAlbumsAlbumIdReviewsReviewIdMutationBody = BodyType<ReviewDto>
+    export type PutApiAlbumsAlbumIdReviewsReviewIdMutationError = ErrorType<unknown>
+
+    export const usePutApiAlbumsAlbumIdReviewsReviewId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAlbumsAlbumIdReviewsReviewId>>, TError,{albumId: string;reviewId: string;data: BodyType<ReviewDto>}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAlbumsAlbumIdReviewsReviewId>>,
+        TError,
+        {albumId: string;reviewId: string;data: BodyType<ReviewDto>},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAlbumsAlbumIdReviewsReviewIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const deleteApiAlbumsAlbumIdReviewsReviewId = (
+    albumId: string,
+    reviewId: string,
+ options?: SecondParameter<typeof axiosInstance>,) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Albums/${albumId}/reviews/${reviewId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiAlbumsAlbumIdReviewsReviewIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAlbumsAlbumIdReviewsReviewId>>, TError,{albumId: string;reviewId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAlbumsAlbumIdReviewsReviewId>>, TError,{albumId: string;reviewId: string}, TContext> => {
+
+const mutationKey = ['deleteApiAlbumsAlbumIdReviewsReviewId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAlbumsAlbumIdReviewsReviewId>>, {albumId: string;reviewId: string}> = (props) => {
+          const {albumId,reviewId} = props ?? {};
+
+          return  deleteApiAlbumsAlbumIdReviewsReviewId(albumId,reviewId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAlbumsAlbumIdReviewsReviewIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAlbumsAlbumIdReviewsReviewId>>>
+    
+    export type DeleteApiAlbumsAlbumIdReviewsReviewIdMutationError = ErrorType<unknown>
+
+    export const useDeleteApiAlbumsAlbumIdReviewsReviewId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAlbumsAlbumIdReviewsReviewId>>, TError,{albumId: string;reviewId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAlbumsAlbumIdReviewsReviewId>>,
+        TError,
+        {albumId: string;reviewId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAlbumsAlbumIdReviewsReviewIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 export const postApiUserAlbums = (
     albumDto: BodyType<AlbumDto>,
  options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
