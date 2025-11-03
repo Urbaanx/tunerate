@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using tunerate_api.Data;
 using tunerate_api.Services;
+using tunerate_api.Swagger;
 
 
 namespace tunerate_api;
@@ -32,7 +33,7 @@ public class Program
         {
             options.AddPolicy("admin", policy => policy.Requirements.Add(new HasScopeRequirement("admin", domain)));
         });
-        builder.Services.AddHttpClient<MusicBrainzService>();
+        builder.Services.AddScoped<MusicBrainzService>();
         builder.Services.AddControllers();
         builder.Services.AddSwaggerGen(c =>
         {
@@ -60,6 +61,7 @@ public class Program
                     Array.Empty<string>()
                 }
             });
+            c.OperationFilter<SwaggerAuthorizeFilter>();
         });
         
         builder.Services.AddCors(options =>

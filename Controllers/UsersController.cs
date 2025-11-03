@@ -25,6 +25,23 @@ namespace tunerate_api.Controllers
             _conf = config;
             _tokenSettings = _conf.GetSection("Auth0ManagementToken").Get<Auth0TokenSettings>();
         }
+        
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _context.Users.ToListAsync();
+            return Ok(users);
+        }
+        [HttpGet("by-auth0id/{auth0Id}")]
+        [Authorize]
+        public async Task<IActionResult> GetUserByAuth0Id(string auth0Id)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
+            if (user == null) return NotFound("Użytkownik nie znaleziony.");
+            return Ok(user);
+        }
+        
         [HttpPost("sync")]
         public async Task<IActionResult> SyncUser()
         {

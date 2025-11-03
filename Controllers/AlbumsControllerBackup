@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using tunerate_api.Data;
 using tunerate_api.Services;
@@ -130,12 +130,60 @@ namespace tunerate_api.Controllers
             if (page <= 0) page = 1;
             if (pageSize <= 0) pageSize = 10;
 
+            // 🔹 Najpierw spróbuj wyszukać albumy w lokalnej bazie danych
+            var localAlbumsQuery = _context.Albums
+                .Where(a =>
+                    EF.Functions.ILike(a.Title, $"%{query}%") ||
+                    EF.Functions.ILike(a.Artist.Name, $"%{query}%"))
+                .AsQueryable();
+
+            // Opcjonalne sortowanie
+            localAlbumsQuery = sort switch
+            {
+                "title_desc" => localAlbumsQuery.OrderByDescending(a => a.Title),
+                "artist_asc" => localAlbumsQuery.OrderBy(a => a.Artist),
+                "artist_desc" => localAlbumsQuery.OrderByDescending(a => a.Artist),
+                _ => localAlbumsQuery.OrderBy(a => a.Title)
+            };
+
+            var totalLocalCount = await localAlbumsQuery.CountAsync();
+            var localAlbums = await localAlbumsQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // 🔹 Jeśli coś znaleziono lokalnie — zwróć od razu
+            if (localAlbums.Any())
+            {
+                return Ok(new
+                {
+                    Items = localAlbums.Select(a => new
+                    {
+                        a.Id,
+                        a.Title,
+                        a.Artist,
+                        a.CoverUrl,
+                        a.ReleaseDate,
+                        a.ExternalId,
+                        a.AverageRating
+                    }),
+                    TotalCount = totalLocalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalLocalCount / pageSize),
+                    Source = "local"
+                });
+            }
+
+            // 🔹 Jeśli brak wyników — spróbuj z MusicBrainz
             var albumsFromApi = await _musicBrainzService.SearchAlbumsAsync(query, page, pageSize, sort);
             
+            await _context.SaveChangesAsync();
+
             return Ok(new
             {
-                Items = albumsFromApi.Items,
-                TotalCount = albumsFromApi.TotalCount,
+                albumsFromApi.Items,
+                albumsFromApi.TotalCount,
                 Page = page,
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling((double)albumsFromApi.TotalCount / pageSize),

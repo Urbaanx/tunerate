@@ -40,7 +40,7 @@ namespace tunerate_api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("MusicBrainzId")
+                    b.Property<string>("ExternalId")
                         .HasColumnType("varchar(36)");
 
                     b.Property<DateTime>("ReleaseDate")
@@ -78,7 +78,7 @@ namespace tunerate_api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("MusicBrainzId")
+                    b.Property<string>("ExternalId")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
@@ -129,7 +129,8 @@ namespace tunerate_api.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 

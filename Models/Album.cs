@@ -10,7 +10,7 @@ namespace tunerate_api.Models
         [Column(TypeName = "varchar(255)")]
         public string Title { get; set; } = string.Empty;
         [Column(TypeName = "varchar(36)")]
-        public string? MusicBrainzId { get; set; }
+        public string? ExternalId { get; set; }
         [Column(TypeName = "date")]
         public DateTime ReleaseDate { get; set; }
         [Column(TypeName = "varchar(255)")]

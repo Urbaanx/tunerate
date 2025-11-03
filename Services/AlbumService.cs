@@ -21,14 +21,14 @@ namespace tunerate_api.Services
 
             // 🔹 Znajdź lub utwórz artystę
             var artist = await _context.Artists
-                .FirstOrDefaultAsync(a => a.MusicBrainzId == albumDto.ArtistId.ToString());
+                .FirstOrDefaultAsync(a => a.ExternalId == albumDto.ArtistId.ToString());
 
             if (artist == null)
             {
                 artist = new Artist
                 {
                     Name = albumDto.Artist,
-                    MusicBrainzId = albumDto.ArtistId != Guid.Empty
+                    ExternalId = albumDto.ArtistId != Guid.Empty
                         ? albumDto.ArtistId.ToString()
                         : null
                 };
@@ -36,13 +36,27 @@ namespace tunerate_api.Services
             }
 
             // 🔹 Znajdź lub utwórz album
-            var album = await _context.Albums
-                .FirstOrDefaultAsync(a => a.MusicBrainzId == albumDto.ExternalId);
+            Album? album = null;
+
+            if (!string.IsNullOrWhiteSpace(albumDto.ExternalId))
+            {
+                album = await _context.Albums
+                    .FirstOrDefaultAsync(a => a.ExternalId == albumDto.ExternalId);
+            }
+            else
+            {
+                // awaryjne wyszukiwanie po tytule i artyście
+                album = await _context.Albums
+                    .Include(a => a.Artist)
+                    .FirstOrDefaultAsync(a =>
+                        a.Title == albumDto.Title &&
+                        a.Artist.Name == albumDto.Artist);
+            }
 
             if (album == null)
             {
                 var releaseDate = DateTime.UtcNow;
-                if (!string.IsNullOrEmpty(albumDto.ReleaseDate) &&
+                if (!string.IsNullOrEmpty(albumDto.ReleaseDate.ToString()) &&
                     DateTime.TryParse(albumDto.ReleaseDate, out var parsed))
                 {
                     releaseDate = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
@@ -52,7 +66,7 @@ namespace tunerate_api.Services
                 {
                     Title = albumDto.Title,
                     Artist = artist,
-                    MusicBrainzId = albumDto.ExternalId,
+                    ExternalId = albumDto.ExternalId,
                     ReleaseDate = releaseDate,
                     CoverUrl = albumDto.CoverUrl
                 };

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace tunerate_api.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,7 +17,7 @@ namespace tunerate_api.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
-                    MusicBrainzId = table.Column<string>(type: "text", nullable: true)
+                    ExternalId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -29,7 +29,7 @@ namespace tunerate_api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false)
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -56,7 +56,7 @@ namespace tunerate_api.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "varchar(255)", nullable: false),
-                    MusicBrainzId = table.Column<string>(type: "varchar(36)", nullable: true),
+                    ExternalId = table.Column<string>(type: "varchar(36)", nullable: true),
                     ReleaseDate = table.Column<DateTime>(type: "date", nullable: false),
                     CoverUrl = table.Column<string>(type: "varchar(255)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
