@@ -1,0 +1,132 @@
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
+class RecommenderSystem:
+    def __init__(self):
+        self.album_features = None
+        self.trained = False
+
+    def train(self, df_reviews, df_albums, df_tags, df_user_albums=None, df_artists=None):
+        if df_albums.empty or df_tags.empty:
+            print("⚠️ Brak danych do trenowania systemu.")
+            self.trained = False
+            return
+
+        # 🔹 Połącz dane tagów w jeden wektor tekstowy na album
+        tag_vectors = (
+            df_tags.groupby("AlbumId")["Name"]
+            .apply(lambda tags: " ".join(tags))
+            .reset_index()
+        )
+
+        # 🔹 Zamień tagi na macierz binarną (jedno-hot)
+        tag_matrix = tag_vectors["Name"].str.get_dummies(sep=" ")
+        self.album_features = pd.concat([tag_vectors[["AlbumId"]], tag_matrix], axis=1)
+
+        # --- zapewnij spójność typów ID ---
+        self.album_features["AlbumId"] = self.album_features["AlbumId"].astype(str)
+        df_albums["Id"] = df_albums["Id"].astype(str)
+        if df_user_albums is not None and "UserId" in df_user_albums.columns:
+            df_user_albums["UserId"] = df_user_albums["UserId"].astype(str)
+            df_user_albums["AlbumId"] = df_user_albums["AlbumId"].astype(str)
+        if "UserId" in df_reviews.columns:
+            df_reviews["UserId"] = df_reviews["UserId"].astype(str)
+            df_reviews["AlbumId"] = df_reviews["AlbumId"].astype(str)
+        # -------------------------------------------------------------------
+
+        # 🔹 Zapamiętaj dane albumów i artystów
+        self.df_albums = df_albums
+        self.df_artists = df_artists if df_artists is not None else pd.DataFrame()
+
+        self.trained = True
+        print("✅ System rekomendacji oparty o tagi gotowy.")
+
+    def recommend(self, user_id, df_reviews, df_albums, df_tags, df_user_albums=None, top_n=5):
+        if not self.trained or self.album_features is None:
+            print("⚠️ System nie został wytrenowany.")
+            return []
+
+        user_id = str(user_id)
+        df_reviews_local = df_reviews.copy()
+        if "UserId" in df_reviews_local.columns:
+            df_reviews_local["UserId"] = df_reviews_local["UserId"].astype(str)
+        if "AlbumId" in df_reviews_local.columns:
+            df_reviews_local["AlbumId"] = df_reviews_local["AlbumId"].astype(str)
+
+        # 🔹 Albumy użytkownika z recenzji
+        user_albums = df_reviews_local[df_reviews_local["UserId"] == user_id]["AlbumId"].unique()
+
+        # 🔹 Jeśli brak recenzji, użyj kolekcji
+        if len(user_albums) == 0 and df_user_albums is not None:
+            df_user_albums_local = df_user_albums.copy()
+            if "UserId" in df_user_albums_local.columns:
+                df_user_albums_local["UserId"] = df_user_albums_local["UserId"].astype(str)
+            if "AlbumId" in df_user_albums_local.columns:
+                df_user_albums_local["AlbumId"] = df_user_albums_local["AlbumId"].astype(str)
+            user_albums = df_user_albums_local[df_user_albums_local["UserId"] == user_id]["AlbumId"].unique()
+            print(f"ℹ️ Użytkownik {user_id} ma {len(user_albums)} albumów w kolekcji (brak recenzji).")
+
+        if len(user_albums) == 0:
+            print(f"⚠️ Brak danych dla użytkownika {user_id}.")
+            return []
+
+        # 🔹 Oblicz profil użytkownika
+        user_features = self.album_features[self.album_features["AlbumId"].isin(user_albums)].drop(columns=["AlbumId"])
+        user_profile = user_features.mean().values.reshape(1, -1)
+
+        # 🔹 Podobieństwo kosinusowe
+        album_vectors = self.album_features.drop(columns=["AlbumId"])
+        similarities = cosine_similarity(album_vectors, user_profile).flatten()
+
+        recs = pd.DataFrame({
+            "AlbumId": self.album_features["AlbumId"],
+            "similarity": similarities
+        }).sort_values("similarity", ascending=False)
+
+        # 🔹 Usuń albumy już posiadane
+        recs = recs[~recs["AlbumId"].isin(user_albums)]
+        top_recs = recs.head(top_n)
+
+        # 🔹 Dopasuj dane albumów
+        df_albums_local = df_albums.copy()
+        if "Id" in df_albums_local.columns:
+            df_albums_local["Id"] = df_albums_local["Id"].astype(str)
+
+        recommended_albums = df_albums_local[df_albums_local["Id"].isin(top_recs["AlbumId"])].copy()
+
+        # 🔹 Dołącz nazwę artysty
+        if not self.df_artists.empty and "Id" in self.df_artists.columns:
+            recommended_albums = recommended_albums.merge(
+                self.df_artists[["Id", "Name"]],
+                left_on="ArtistId",
+                right_on="Id",
+                how="left",
+                suffixes=("", "_Artist")
+            )
+            recommended_albums.rename(columns={"Name": "Artist"}, inplace=True)
+            recommended_albums.drop(columns=["Id_Artist"], errors="ignore", inplace=True)
+        else:
+            recommended_albums["Artist"] = None
+
+        # 🔹 Zamień nazwy kolumn na camelCase i zachowaj wszystkie wymagane pola
+        rename_map = {
+            "Id": "id",
+            "Title": "title",
+            "Artist": "artist",
+            "ArtistId": "artistId",
+            "ReleaseDate": "releaseDate",
+            "ExternalId": "externalId",
+            "CoverUrl": "coverUrl"
+        }
+
+        for old_col, new_col in rename_map.items():
+            if old_col not in recommended_albums.columns:
+                recommended_albums[old_col] = None
+
+        recommended_albums = recommended_albums.rename(columns=rename_map)
+
+        # 🔹 Wybierz tylko potrzebne pola
+        final_cols = ["id", "title", "artist", "artistId", "releaseDate", "externalId", "coverUrl"]
+        recommended_albums = recommended_albums[final_cols]
+
+        return recommended_albums.to_dict(orient="records")
