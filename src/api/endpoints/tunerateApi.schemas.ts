@@ -24,7 +24,30 @@ export interface ReviewDto {
   score?: number;
 }
 
+export type GetApiAlbumsParams = {
+page?: number;
+pageSize?: number;
+sort?: string;
+genre?: string;
+artist?: string;
+year?: number;
+popularity?: string;
+};
+
 export type GetApiAlbumsSearchParams = {
 query?: string;
+page?: number;
+pageSize?: number;
+sort?: string;
+};
+
+export type GetApiRecommendationUserIdParams = {
+topN?: number;
+};
+
+export type GetApiReviewsAlbumIdParams = {
+page?: number;
+pageSize?: number;
+sort?: string;
 };
 

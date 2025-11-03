@@ -4,6 +4,7 @@ export default {
       mode: "split",
       target: "./src/api/endpoints",
       client: "react-query",
+      httpClient: "axios",
       override: {
         mutator: {
           path: "./src/api/axiosInstance.ts",

@@ -1,8 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth0 } from "@auth0/auth0-react";
+import { usePostApiAlbums } from "../api/endpoints/tunerateApi";
 
 interface Album {
-  id: string;
+  id?: string;
   title: string;
   artist: string;
   artistId?: string;
@@ -18,6 +20,49 @@ interface AlbumCardProps {
 
 const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
   const navigate = useNavigate();
+  const { isAuthenticated, loginWithRedirect } = useAuth0();
+
+  const createAlbumMutation = usePostApiAlbums();
+
+  const handleCardClick = async () => {
+    if (!isAuthenticated) {
+      await loginWithRedirect();
+      return;
+    }
+
+    try {
+
+      // 🔹 Jeśli album już istnieje w bazie → przejdź bezpośrednio
+      if (album.id) {
+        navigate(`/album/${album.id}`);
+        return;
+      }
+
+      // 🔹 Jeśli pochodzi z MusicBrainz → utwórz w bazie
+      // treat the mutation result as any and handle possible shapes (response.data.id or response.id)
+      const response = (await createAlbumMutation.mutateAsync({
+        data: {
+          title: album.title,
+          artist: album.artist,
+          artistId: album.artistId,
+          externalId: album.externalId,
+          coverUrl: album.coverUrl,
+          releaseDate: album.releaseDate,
+        },
+      })) as any;
+
+      const newAlbumId = response?.data?.id ?? response?.id;
+      if (newAlbumId) {
+        navigate(`/album/${newAlbumId}`);
+      } else {
+        console.warn("Created album id not found in mutation response:", response);
+        alert("Utworzono album, ale nie można było otworzyć strony albumu.");
+      }
+    } catch (err) {
+      console.error("❌ Błąd podczas otwierania szczegółów albumu:", err);
+      alert("Nie udało się otworzyć strony albumu.");
+    }
+  };
 
   const handleAddClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,37 +75,31 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
     }
   };
 
-  const handleCardClick = () => {
-    navigate(`/album/${album.id}`);
-  };
-
   return (
     <div
       onClick={handleCardClick}
-      className="w-56 md:w-64 bg-gray-900 bg-opacity-70 rounded-xl shadow-lg overflow-hidden hover:scale-105 transform transition duration-300 flex flex-col cursor-pointer"
+      className="bg-gray-900 bg-opacity-70 rounded-2xl shadow-lg overflow-hidden hover:scale-105 transform transition duration-300 flex flex-col cursor-pointer"
     >
-      {/* Okładka */}
-      <div className="relative w-full aspect-square bg-gray-800">
+      <div className="relative">
         {album.coverUrl ? (
           <img
             src={album.coverUrl}
             alt={album.title}
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className="w-full h-60 object-cover"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+          <div className="w-full h-60 flex items-center justify-center bg-gray-800 text-gray-500">
             Brak okładki
           </div>
         )}
       </div>
 
-      {/* Opis */}
       <div className="p-4 flex flex-col flex-grow justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white">{album.title}</h3>
-          <p className="text-sm text-gray-300">{album.artist}</p>
+          <p className="text-sm text-gray-400">{album.artist}</p>
           {album.releaseDate && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Data wydania: {album.releaseDate}
             </p>
           )}
@@ -69,7 +108,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
         {onAddToCollection && (
           <button
             onClick={handleAddClick}
-            className="mt-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-medium py-2 rounded-md hover:opacity-90 transition"
+            className="mt-4 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium py-2 rounded-lg hover:opacity-90 transition"
           >
             ➕ Dodaj do kolekcji
           </button>

@@ -15,6 +15,15 @@ const queryClient = new QueryClient({
       retry: false,
       refetchOnWindowFocus: false,
     },
+    mutations: {
+      // 🔹 globalne odświeżanie wszystkich query po każdej mutacji
+      onSuccess: () => {
+        queryClient.invalidateQueries(); // bez argumentów = wszystkie query
+      },
+      onError: (error) => {
+        console.error("Mutation error:", error);
+      },
+    },
   },
 });
 
@@ -23,15 +32,30 @@ const AppRouter: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Navbar />
-        <AuthGuard>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/collection" element={<CollectionPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/album/:id" element={<AlbumDetailsPage />} />
-          </Routes>
-        </AuthGuard>
+        <Routes>
+          {/* public routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="album/:id" element={<AlbumDetailsPage />} />
+
+          {/* protected routes - zabezpieczone indywidualnie */}
+          <Route
+            path="/collection"
+            element={
+              <AuthGuard>
+                <CollectionPage />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <AuthGuard>
+                <DashboardPage />
+              </AuthGuard>
+            }
+          />
+        </Routes>
       </Router>
     </QueryClientProvider>
   );

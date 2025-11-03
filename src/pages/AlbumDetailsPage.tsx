@@ -3,15 +3,25 @@ import { useParams } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import {
   useGetApiAlbumsId,
-  useGetApiAlbumsIdReviews,
+  useGetApiReviewsAlbumId,
   useGetApiUserAlbums,
   usePostApiUserAlbums,
   useDeleteApiUserAlbumsAlbumId,
-  usePostApiAlbumsIdReviews,
-  usePutApiAlbumsAlbumIdReviewsReviewId,
-  useDeleteApiAlbumsAlbumIdReviewsReviewId,
+  usePostApiReviewsAlbumId,
+  usePutApiReviewsReviewId,
+  useDeleteApiReviewsReviewId,
 } from "../api/endpoints/tunerateApi";
-import { Loader2, Star, User, Edit2, Trash2, X, Check } from "lucide-react";
+import {
+  Loader2,
+  Star,
+  User,
+  Edit2,
+  Trash2,
+  X,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 const AlbumDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,8 +41,15 @@ const AlbumDetailsPage: React.FC = () => {
   const [editContent, setEditContent] = useState<string>("");
   const [editRating, setEditRating] = useState<number>(0);
 
+  const [page, setPage] = useState<number>(1);
+  const [pageSize] = useState<number>(5);
+  const [sort, setSort] = useState<string>("newest");
+
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setToken(null);
+      return;
+    }
     getAccessTokenSilently()
       .then((t) => setToken(t))
       .catch(() => setToken(null));
@@ -44,9 +61,6 @@ const AlbumDetailsPage: React.FC = () => {
     isError: albumError,
   } = useGetApiAlbumsId<any, unknown>(id!, {
     query: { enabled: !!token && !!id },
-    request: token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined,
   });
 
   const { data: userAlbums, refetch: refetchUserAlbums } = useGetApiUserAlbums<
@@ -54,39 +68,31 @@ const AlbumDetailsPage: React.FC = () => {
     unknown
   >({
     query: { enabled: !!token },
-    request: token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined,
   });
 
   const {
-    data: reviews,
+    data: reviewsResponse,
     isLoading: reviewsLoading,
     isError: reviewsError,
     refetch: refetchReviews,
-  } = useGetApiAlbumsIdReviews<any, unknown>(id!, {
-    query: { enabled: !!token && !!id },
-    request: token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined,
-  });
+  } = useGetApiReviewsAlbumId<any, unknown>(
+    id!,
+    { page, pageSize, sort },
+    {
+      query: {
+        enabled: !!token && !!id,
+        queryKey: ["albumReviews", id, page, sort],
+      },
+    }
+  );
 
-  const postReviewMutation = usePostApiAlbumsIdReviews({
-    request: token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined,
-  });
-  const putReviewMutation = usePutApiAlbumsAlbumIdReviewsReviewId({
-    request: token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined,
-  });
-  const deleteReviewMutation = useDeleteApiAlbumsAlbumIdReviewsReviewId({
-    request: token
-      ? { headers: { Authorization: `Bearer ${token}` } }
-      : undefined,
-  });
+  const reviews = reviewsResponse?.items ?? [];
+  const totalPages = reviewsResponse?.totalPages ?? 1;
+  const totalCount = reviewsResponse?.totalCount ?? 0;
 
+  const { mutateAsync: postReviewMutation } = usePostApiReviewsAlbumId();
+  const { mutateAsync: putReviewMutation } = usePutApiReviewsReviewId();
+  const { mutateAsync: deleteReviewMutation } = useDeleteApiReviewsReviewId();
   const { mutateAsync: addAlbum } = usePostApiUserAlbums();
   const { mutateAsync: removeAlbum } = useDeleteApiUserAlbumsAlbumId();
 
@@ -97,17 +103,18 @@ const AlbumDetailsPage: React.FC = () => {
     }
   }, [userAlbums, album]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [sort]);
+
   const handleToggleCollection = async () => {
     if (!token || !album) return;
 
     try {
       if (isInCollection) {
-        await removeAlbum(
-          { albumId: album.id },
-          {
-            request: { headers: { Authorization: `Bearer ${token}` } },
-          } as any
-        );
+        await removeAlbum({ albumId: album.id }, {
+          request: { headers: { Authorization: `Bearer ${token}` } },
+        } as any);
         setIsInCollection(false);
       } else {
         await addAlbum(
@@ -151,19 +158,13 @@ const AlbumDetailsPage: React.FC = () => {
     }
 
     try {
-      let t = token;
-      if (!t) {
-        t = await getAccessTokenSilently();
-        setToken(t ?? null);
-      }
-
-      await postReviewMutation.mutateAsync({
-        id,
+      await postReviewMutation({
+        albumId: id!,
         data: { content: newReview.trim(), score: rating },
       });
-
       setNewReview("");
       setRating(0);
+      if (sort === "newest") setPage(1);
       if (refetchReviews) await refetchReviews();
     } catch (err) {
       console.error("Błąd dodawania recenzji:", err);
@@ -178,12 +179,10 @@ const AlbumDetailsPage: React.FC = () => {
     }
 
     try {
-      await putReviewMutation.mutateAsync({
-        albumId: id!,
+      await putReviewMutation({
         reviewId,
         data: { content: editContent.trim(), score: editRating },
       });
-
       setEditingReviewId(null);
       setEditContent("");
       setEditRating(0);
@@ -198,7 +197,7 @@ const AlbumDetailsPage: React.FC = () => {
     if (!window.confirm("Czy na pewno chcesz usunąć tę recenzję?")) return;
 
     try {
-      await deleteReviewMutation.mutateAsync({ albumId: id!, reviewId });
+      await deleteReviewMutation({ reviewId });
       if (refetchReviews) await refetchReviews();
     } catch (err) {
       console.error("❌ Błąd usuwania recenzji:", err);
@@ -206,7 +205,6 @@ const AlbumDetailsPage: React.FC = () => {
     }
   };
 
-  // Dodane: formatuje datę w postaci YYYY-MM-DD, usuwa część czasu "T..."
   const formatDate = (d?: string | null) => {
     if (!d) return null;
     const idx = d.indexOf("T");
@@ -249,7 +247,6 @@ const AlbumDetailsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white p-6">
       <div className="max-w-5xl mx-auto">
-        {/* Sekcja albumu */}
         <div className="flex flex-col md:flex-row gap-6 items-center mb-10">
           <img
             src={album.coverUrl}
@@ -262,14 +259,12 @@ const AlbumDetailsPage: React.FC = () => {
             <p className="text-sm text-gray-400 mb-4">
               Data wydania: {formatDate(album.releaseDate) || "Nieznana"}
             </p>
-
             <div className="flex items-center mb-4">
               <Star className="text-yellow-400 w-5 h-5 mr-1" />
               <span className="text-lg font-semibold">
                 {album.averageRating ? album.averageRating.toFixed(1) : "—"} / 10
               </span>
             </div>
-
             <button
               onClick={handleToggleCollection}
               className={`px-6 py-3 rounded-lg font-medium transition ${
@@ -283,9 +278,21 @@ const AlbumDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Sekcja recenzji */}
         <div className="bg-black/40 p-6 rounded-2xl border border-white/10">
-          <h2 className="text-2xl font-semibold mb-4">Recenzje użytkowników</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Recenzje użytkowników</h2>
+
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="bg-gray-800 text-white p-2 rounded-lg border border-gray-700 text-sm"
+            >
+              <option value="newest">Najnowsze</option>
+              <option value="oldest">Najstarsze</option>
+              <option value="score_desc">Najwyższa ocena</option>
+              <option value="score_asc">Najniższa ocena</option>
+            </select>
+          </div>
 
           {isInCollection && (
             <div className="mb-6">
@@ -296,7 +303,6 @@ const AlbumDetailsPage: React.FC = () => {
                 placeholder="Napisz recenzję..."
                 className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none"
               />
-
               <div className="flex items-center mt-3 space-x-2">
                 {[...Array(10)].map((_, i) => {
                   const value = i + 1;
@@ -316,7 +322,6 @@ const AlbumDetailsPage: React.FC = () => {
                   {rating > 0 ? `${rating}/10` : "Wybierz ocenę"}
                 </span>
               </div>
-
               <div className="flex mt-3">
                 <button
                   onClick={handleSubmitReview}
@@ -336,91 +341,120 @@ const AlbumDetailsPage: React.FC = () => {
             </div>
           ) : reviewsError ? (
             <p className="text-red-400">Nie udało się pobrać recenzji.</p>
-          ) : !reviews || reviews.length === 0 ? (
+          ) : reviews.length === 0 ? (
             <p className="text-gray-400">Brak recenzji dla tego albumu.</p>
           ) : (
-            <ul className="space-y-4">
-              {reviews.map((review: any) => (
-                <li
-                  key={review.id}
-                  className="p-4 bg-black/50 rounded-xl border border-white/10"
-                >
-                  <div className="flex items-center mb-2">
-                    <User className="w-4 h-4 mr-2 text-gray-400" />
-                    <span className="font-semibold">{review.user}</span>
-                    <span className="ml-auto text-yellow-400">
-                      {review.score ? `${review.score}/10` : ""}
-                    </span>
+            <>
+              <ul className="space-y-4">
+                {reviews.map((review: any) => (
+                  <li
+                    key={review.id}
+                    className="p-4 bg-black/50 rounded-xl border border-white/10"
+                  >
+                    <div className="flex items-center mb-2">
+                      <User className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="font-semibold">{review.user}</span>
+                      <span className="ml-auto text-yellow-400">
+                        {review.score ? `${review.score}/10` : ""}
+                      </span>
+                    </div>
+
+                    {editingReviewId === review.id ? (
+                      <>
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700 mb-2"
+                        />
+                        <div className="flex items-center mb-2 space-x-2">
+                          {[...Array(10)].map((_, i) => {
+                            const value = i + 1;
+                            return (
+                              <Star
+                                key={value}
+                                className={`cursor-pointer w-5 h-5 ${
+                                  value <= editRating
+                                    ? "text-yellow-400"
+                                    : "text-gray-600 hover:text-yellow-300"
+                                }`}
+                                onClick={() => setEditRating(value)}
+                              />
+                            );
+                          })}
+                          <span className="ml-2 text-sm text-gray-300">
+                            {editRating}/10
+                          </span>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => setEditingReviewId(null)}
+                            className="px-3 py-1 bg-gray-700 hover:bg-gray-800 rounded-lg flex items-center"
+                          >
+                            <X className="w-4 h-4 mr-1" /> Anuluj
+                          </button>
+                          <button
+                            onClick={() => handleEditReview(review.id)}
+                            className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center"
+                          >
+                            <Check className="w-4 h-4 mr-1" /> Zapisz
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-gray-300">{review.content}</p>
+                    )}
+
+                    {review.auth0Id === currentUserAuth0Id &&
+                      editingReviewId !== review.id && (
+                        <div className="flex justify-end space-x-3 mt-2">
+                          <button
+                            onClick={() => {
+                              setEditingReviewId(review.id);
+                              setEditContent(review.content);
+                              setEditRating(review.score);
+                            }}
+                            className="flex items-center text-sm text-blue-400 hover:text-blue-500"
+                          >
+                            <Edit2 className="w-4 h-4 mr-1" /> Edytuj
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReview(review.id)}
+                            className="flex items-center text-sm text-red-400 hover:text-red-500"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" /> Usuń
+                          </button>
+                        </div>
+                      )}
+                  </li>
+                ))}
+              </ul>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-4 mt-6">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-3 py-2 bg-gray-800 rounded-lg disabled:opacity-40 flex items-center"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Poprzednia
+                  </button>
+
+                  <div className="text-gray-300">
+                    Strona <strong className="text-white">{page}</strong> z{" "}
+                    <strong className="text-white">{totalPages}</strong> —{" "}
+                    {totalCount} recenzji
                   </div>
 
-                  {editingReviewId === review.id ? (
-                    <>
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700 mb-2"
-                      />
-                      <div className="flex items-center mb-2 space-x-2">
-                        {[...Array(10)].map((_, i) => {
-                          const value = i + 1;
-                          return (
-                            <Star
-                              key={value}
-                              className={`cursor-pointer w-5 h-5 ${
-                                value <= editRating
-                                  ? "text-yellow-400"
-                                  : "text-gray-600 hover:text-yellow-300"
-                              }`}
-                              onClick={() => setEditRating(value)}
-                            />
-                          );
-                        })}
-                        <span className="ml-2 text-sm text-gray-300">
-                          {editRating}/10
-                        </span>
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => setEditingReviewId(null)}
-                          className="px-3 py-1 bg-gray-700 hover:bg-gray-800 rounded-lg flex items-center"
-                        >
-                          <X className="w-4 h-4 mr-1" /> Anuluj
-                        </button>
-                        <button
-                          onClick={() => handleEditReview(review.id)}
-                          className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg flex items-center"
-                        >
-                          <Check className="w-4 h-4 mr-1" /> Zapisz
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-gray-300">{review.content}</p>
-                  )}
-
-                  {review.auth0Id === currentUserAuth0Id && editingReviewId !== review.id && (
-                    <div className="flex justify-end space-x-3 mt-2">
-                      <button
-                        onClick={() => {
-                          setEditingReviewId(review.id);
-                          setEditContent(review.content);
-                          setEditRating(review.score);
-                        }}
-                        className="flex items-center text-sm text-blue-400 hover:text-blue-500"
-                      >
-                        <Edit2 className="w-4 h-4 mr-1" /> Edytuj
-                      </button>
-                      <button
-                        onClick={() => handleDeleteReview(review.id)}
-                        className="flex items-center text-sm text-red-400 hover:text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" /> Usuń
-                      </button>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="px-3 py-2 bg-gray-800 rounded-lg disabled:opacity-40 flex items-center"
+                  >
+                    Następna <ChevronRight className="w-4 h-4 ml-1" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

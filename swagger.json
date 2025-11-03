@@ -5,6 +5,119 @@
     "version": "1.0"
   },
   "paths": {
+    "/api/Albums": {
+      "get": {
+        "tags": [
+          "Albums"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "title_asc"
+            }
+          },
+          {
+            "name": "genre",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artist",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "popularity",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": false
+      },
+      "post": {
+        "tags": [
+          "Albums"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": false
+      }
+    },
+    "/api/Albums/all": {
+      "get": {
+        "tags": [
+          "Albums"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": false
+      }
+    },
     "/api/Albums/search": {
       "get": {
         "tags": [
@@ -17,13 +130,40 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "title_asc"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": true
       }
     },
     "/api/Albums/{id}": {
@@ -46,22 +186,32 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": true
       }
     },
-    "/api/Albums/{id}/reviews": {
+    "/api/Recommendation/{userId}": {
       "get": {
         "tags": [
-          "Albums"
+          "Recommendation"
         ],
         "parameters": [
           {
-            "name": "id",
+            "name": "userId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "topN",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 5
             }
           }
         ],
@@ -69,15 +219,66 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": false
+      }
+    },
+    "/api/Reviews/{albumId}": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "parameters": [
+          {
+            "name": "albumId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 5
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "newest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": false
       },
       "post": {
         "tags": [
-          "Albums"
+          "Reviews"
         ],
         "parameters": [
           {
-            "name": "id",
+            "name": "albumId",
             "in": "path",
             "required": true,
             "schema": {
@@ -109,24 +310,16 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": false
       }
     },
-    "/api/Albums/{albumId}/reviews/{reviewId}": {
+    "/api/Reviews/{reviewId}": {
       "put": {
         "tags": [
-          "Albums"
+          "Reviews"
         ],
         "parameters": [
-          {
-            "name": "albumId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
           {
             "name": "reviewId",
             "in": "path",
@@ -160,22 +353,14 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": false
       },
       "delete": {
         "tags": [
-          "Albums"
+          "Reviews"
         ],
         "parameters": [
-          {
-            "name": "albumId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
           {
             "name": "reviewId",
             "in": "path",
@@ -190,7 +375,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": false
       }
     },
     "/api/UserAlbums": {
@@ -221,7 +407,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": true
       },
       "get": {
         "tags": [
@@ -231,7 +418,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": true
       }
     },
     "/api/UserAlbums/{albumId}": {
@@ -254,7 +442,44 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Users/by-auth0id/{auth0Id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "auth0Id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
       }
     },
     "/api/Users/sync": {
@@ -266,7 +491,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "x-requiresAuth": true
       }
     }
   },
