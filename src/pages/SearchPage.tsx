@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import {
-  useGetApiAlbumsSearch,
   useGetApiAlbums,
+  useGetApiAlbumsSearch,
   usePostApiUserAlbums,
 } from "../api/endpoints/tunerateApi";
 import AlbumCard from "../components/AlbumCard";
@@ -10,33 +10,28 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SearchPage: React.FC = () => {
   const [query, setQuery] = useState("");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [activeQuery, setActiveQuery] = useState<string>("");
   const [albums, setAlbums] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
-
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(12);
   const [sort, setSort] = useState<string>("title_asc");
-
   const [year, setYear] = useState<string>("");
   const [artist, setArtist] = useState<string>("");
   const [genre, setGenre] = useState<string>("");
 
-  const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } =
+    useAuth0();
   const [token, setToken] = useState<string | null>(null);
 
-  // Pobranie tokena
+  // ✅ Token
   useEffect(() => {
     let mounted = true;
     if (isAuthenticated) {
       getAccessTokenSilently()
-        .then((t) => {
-          if (mounted) setToken(t);
-        })
-        .catch(() => {
-          if (mounted) setToken(null);
-        });
+        .then((t) => mounted && setToken(t))
+        .catch(() => mounted && setToken(null));
     } else {
       setToken(null);
     }
@@ -45,114 +40,118 @@ const SearchPage: React.FC = () => {
     };
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  // Reset strony przy zmianie filtrów
+  // ✅ Debounce wpisywania
   useEffect(() => {
-    setPage(1);
-    // jak zmieniamy filtry, chcemy widok lokalny — wyłącz wyszukiwanie MusicBrainz
-    setSearchQuery("");
-  }, [artist, year, genre, sort]);
+    const timeout = setTimeout(() => {
+      setActiveQuery(query.trim());
+      setPage(1);
+    }, 700);
+    return () => clearTimeout(timeout);
+  }, [query]);
 
-  // 🔹 Fetch lokalnych albumów (server-side filtry: artist, year, genre)
+  // 🔹 Wyszukiwanie lokalne (zawsze po całości bazy)
+  const { data: localResults, isFetching: isFetchingLocal } =
+    useGetApiAlbums<any>(
+      {
+        page,
+        pageSize,
+        sort,
+        artist: artist || undefined,
+        year: year ? parseInt(year) : undefined,
+        genre: genre || undefined,
+        query: activeQuery || undefined, // backendowy parametr wyszukiwania
+      },
+      {
+        query: {
+          enabled: !!token && !!isAuthenticated,
+          keepPreviousData: true,
+        } as any,
+      }
+    );
+
+  // 🔹 Wyszukiwanie w MusicBrainz — tylko jeśli brak lokalnych wyników
   const {
-    data: localAlbumsData,
-    isFetching: isFetchingLocal,
-    refetch: refetchLocal,
-  } = useGetApiAlbums<any>(
-    {
-      page,
-      pageSize,
-      sort,
-      // przekazujemy tylko jeśli są ustawione (backend potrafi obsłużyć null/undefined)
-      artist: artist || undefined,
-      year: year ? parseInt(year) : undefined,
-      genre: genre || undefined,
-    },
+    data: musicBrainzResults,
+    isFetching: isFetchingMB,
+    refetch: refetchMB,
+  } = useGetApiAlbumsSearch<any, unknown>(
+    activeQuery ? { query: activeQuery, page, pageSize, sort } : undefined,
     {
       query: {
-        enabled: !!token && !searchQuery, // pobieramy lokalne tylko gdy nie w trybie wyszukiwania
+        enabled: false, // wywołujemy ręcznie
         keepPreviousData: true,
+        retry: false,
       } as any,
     }
   );
 
-  // 🔹 Fetch wyszukiwanych albumów (MusicBrainz via /api/albums/search)
-  const {
-    data: searchAlbumsData,
-    isFetching: isFetchingSearch,
-    isError: isSearchError,
-  } = useGetApiAlbumsSearch<any, unknown>(
-    searchQuery
-      ? { query: searchQuery, page, pageSize, sort }
-      : undefined,
-    {
-      query: ({
-        queryKey: ["albums-search", searchQuery, page, sort, token],
-        enabled: !!(searchQuery && token),
-        keepPreviousData: true,
-        retry: false,
-      } as any),
-    }
-  );
-
-  // 🔹 Aktualizacja danych (w zależności od trybu)
+  // 🔹 Aktualizacja danych po zmianie wyników
   useEffect(() => {
-    const activeData = searchQuery ? searchAlbumsData : localAlbumsData;
+    const localItems =
+      (localResults as any)?.items ?? (localResults as any)?.Items ?? [];
+    const localCount =
+      (localResults as any)?.totalCount ??
+      (localResults as any)?.TotalCount ??
+      localItems.length;
 
-    if (activeData) {
-      // różne shape odpowiedzi: items / Items / albumsFromApi.Items
-      const items =
-        (activeData as any).items ??
-        (activeData as any).Items ??
-        (activeData as any).albumsFromApi?.Items ??
-        [];
-      const tp =
-        (activeData as any).totalPages ??
-        (activeData as any).TotalPages ??
-        Math.ceil(((activeData as any).totalCount ?? (activeData as any).TotalCount ?? items.length) / pageSize);
+    // Nie uruchamiaj wyszukiwania w MusicBrainz dopóki lokalne wyniki są w trakcie pobierania.
+    // Dzięki temu nie będziemy od razu wywoływać refetchMB gdy localResults jeszcze się ładuje
+    // i tymczasowo zwraca pustą listę.
+    if (isFetchingLocal) {
+      return;
+    }
 
-      const tc =
-        (activeData as any).totalCount ?? (activeData as any).TotalCount ?? items.length;
-
-      setAlbums(items);
-      setTotalPages(tp);
-      setTotalCount(tc);
+    if (activeQuery && localCount === 0) {
+      // nic lokalnie — pobieramy z MB
+      refetchMB();
     } else {
-      setAlbums([]);
-      setTotalPages(1);
-      setTotalCount(0);
+      setAlbums(localItems);
+      setTotalPages(
+        (localResults as any)?.totalPages ??
+          (localResults as any)?.TotalPages ??
+          1
+      );
+      setTotalCount(localCount);
     }
-  }, [localAlbumsData, searchAlbumsData, searchQuery, pageSize]);
+  }, [localResults, activeQuery, refetchMB, isFetchingLocal]);
 
-  // 🔹 Obsługa opóźnienia wpisywania (debounce 800ms)
+  // 🔹 Jeśli przyszły dane z MusicBrainz
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (query.trim().length > 2) {
-        setSearchQuery(query.trim());
-        setPage(1);
-      } else {
-        // krótkie query -> wyłącz wyszukiwanie i wróć do lokalnych (server-side filtry zostaną użyte)
-        setSearchQuery("");
-        // refetchLocal() nie jest konieczne — react-query odświeży gdy params się zmienią,
-        // ale możemy wywołać dla pewności:
-        refetchLocal();
-      }
-    }, 800);
-    return () => clearTimeout(timeout);
-  }, [query, refetchLocal]);
+    if (musicBrainzResults) {
+      const items =
+        (musicBrainzResults as any)?.items ??
+        (musicBrainzResults as any)?.Items ??
+        (musicBrainzResults as any)?.albumsFromApi?.Items ??
+        [];
+      const count =
+        (musicBrainzResults as any)?.totalCount ??
+        (musicBrainzResults as any)?.TotalCount ??
+        items.length;
+      setAlbums(items);
+      setTotalPages(1);
+      setTotalCount(count);
+    }
+  }, [musicBrainzResults]);
 
-  // 🔹 Dodawanie albumu do kolekcji
+  const isFetching = isFetchingLocal || isFetchingMB;
+
+  // 🔹 Dodawanie do kolekcji
   const { mutate: postUserAlbum } = usePostApiUserAlbums();
   const handleAddToCollection = async (album: any) => {
     if (!isAuthenticated) {
       loginWithRedirect();
       return;
     }
+
     const payload = {
       title: album.title ?? album.Title ?? null,
       artist: album.artist ?? album.Artist ?? null,
-      artistId: album.artistId ?? album.artistId ?? "00000000-0000-0000-0000-000000000000",
+      artistId:
+        album.artistId ??
+        album.artistId ??
+        "00000000-0000-0000-0000-000000000000",
       releaseDate: album.releaseDate ?? album.ReleaseDate ?? null,
-      externalId: album.externalId ?? album.externalId ?? "",
+      externalId: album.externalId ?? album.ExternalId ?? "",
       coverUrl: album.coverUrl ?? album.CoverUrl ?? null,
     };
 
@@ -185,12 +184,12 @@ const SearchPage: React.FC = () => {
     );
   }
 
-  const isFetching = isFetchingLocal || isFetchingSearch;
-
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white p-6">
       <h1 className="text-4xl font-extrabold mb-6 text-center">
-        {searchQuery ? "Wyniki wyszukiwania" : "Przeglądaj albumy"}
+        {activeQuery
+          ? "Wyniki wyszukiwania"
+          : "Przeglądaj albumy z bazy danych"}
       </h1>
 
       {/* 🔍 Wyszukiwanie */}
@@ -203,26 +202,18 @@ const SearchPage: React.FC = () => {
           className="w-1/2 px-4 py-2 rounded-l-lg bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
-          onClick={() => {
-            if (query.trim().length > 0) {
-              setSearchQuery(query.trim());
-              setPage(1);
-            }
-          }}
+          onClick={() => setActiveQuery(query.trim())}
           className="px-6 py-2 bg-blue-600 rounded-r-lg hover:bg-blue-700 transition"
         >
           Szukaj
         </button>
       </div>
 
-      {/* 🔽 Filtry i sortowanie (server-side) */}
+      {/* Filtry */}
       <div className="flex flex-wrap justify-center gap-4 mb-8">
         <select
           value={sort}
-          onChange={(e) => {
-            setSort(e.target.value);
-            setPage(1);
-          }}
+          onChange={(e) => setSort(e.target.value)}
           className="bg-gray-800 text-white p-2 rounded-lg border border-gray-700"
         >
           <option value="title_asc">Tytuł A-Z</option>
@@ -260,16 +251,9 @@ const SearchPage: React.FC = () => {
         />
       </div>
 
-      {isFetching && (
-        <p className="text-center text-gray-400">Ładowanie albumów...</p>
-      )}
-      {isSearchError && (
-        <p className="text-center text-red-400">
-          Nie udało się pobrać wyników wyszukiwania.
-        </p>
-      )}
+      {isFetching && <p className="text-center text-gray-400">Ładowanie...</p>}
 
-      {/* 🖼️ Lista albumów (bez dodatkowego client-side filtrowania) */}
+      {/* Lista albumów */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((a) => (
           <AlbumCard
@@ -278,7 +262,10 @@ const SearchPage: React.FC = () => {
               id: a.id,
               title: a.title ?? a.Title ?? "",
               artist: a.artist ?? a.Artist ?? "",
-              artistId: a.artistId ?? a.artistId ?? "00000000-0000-0000-0000-000000000000",
+              artistId:
+                a.artistId ??
+                a.artistId ??
+                "00000000-0000-0000-0000-000000000000",
               releaseDate: a.releaseDate ?? a.ReleaseDate ?? null,
               externalId: a.externalId ?? a.ExternalId ?? null,
               coverUrl: a.coverUrl ?? a.CoverUrl ?? null,
@@ -301,7 +288,8 @@ const SearchPage: React.FC = () => {
 
           <div className="text-gray-300">
             Strona <strong className="text-white">{page}</strong> z{" "}
-            <strong className="text-white">{totalPages}</strong> — {totalCount} albumów
+            <strong className="text-white">{totalPages}</strong> — {totalCount}{" "}
+            albumów
           </div>
 
           <button

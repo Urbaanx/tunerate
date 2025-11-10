@@ -32,6 +32,7 @@ genre?: string;
 artist?: string;
 year?: number;
 popularity?: string;
+query?: string;
 };
 
 export type GetApiAlbumsSearchParams = {
@@ -41,7 +42,12 @@ pageSize?: number;
 sort?: string;
 };
 
-export type GetApiRecommendationUserIdParams = {
+export type GetApiRecommendationsUserIdParams = {
+type?: string;
+topN?: number;
+};
+
+export type GetApiRecommendationsAlbumAlbumIdParams = {
 topN?: number;
 };
 

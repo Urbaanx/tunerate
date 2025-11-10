@@ -27,7 +27,8 @@ import type {
   AlbumDto,
   GetApiAlbumsParams,
   GetApiAlbumsSearchParams,
-  GetApiRecommendationUserIdParams,
+  GetApiRecommendationsAlbumAlbumIdParams,
+  GetApiRecommendationsUserIdParams,
   GetApiReviewsAlbumIdParams,
   ReviewDto
 } from './tunerateApi.schemas';
@@ -445,15 +446,15 @@ export function useGetApiAlbumsId<TData = Awaited<ReturnType<typeof getApiAlbums
 
 
 
-export const getApiRecommendationUserId = (
+export const getApiRecommendationsUserId = (
     userId: string,
-    params?: GetApiRecommendationUserIdParams,
+    params?: GetApiRecommendationsUserIdParams,
  options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
 ) => {
       
       
       return axiosInstance<void>(
-      {url: `/api/Recommendation/${userId}`, method: 'GET',
+      {url: `/api/Recommendations/${userId}`, method: 'GET',
         params, signal
     },
       options);
@@ -462,72 +463,252 @@ export const getApiRecommendationUserId = (
 
 
 
-export const getGetApiRecommendationUserIdQueryKey = (userId?: string,
-    params?: GetApiRecommendationUserIdParams,) => {
+export const getGetApiRecommendationsUserIdQueryKey = (userId?: string,
+    params?: GetApiRecommendationsUserIdParams,) => {
     return [
-    `/api/Recommendation/${userId}`, ...(params ? [params]: [])
+    `/api/Recommendations/${userId}`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getGetApiRecommendationUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError = ErrorType<unknown>>(userId: string,
-    params?: GetApiRecommendationUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+export const getGetApiRecommendationsUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError = ErrorType<unknown>>(userId: string,
+    params?: GetApiRecommendationsUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiRecommendationUserIdQueryKey(userId,params);
+  const queryKey =  queryOptions?.queryKey ?? getGetApiRecommendationsUserIdQueryKey(userId,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRecommendationUserId>>> = ({ signal }) => getApiRecommendationUserId(userId,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRecommendationsUserId>>> = ({ signal }) => getApiRecommendationsUserId(userId,params, requestOptions, signal);
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetApiRecommendationUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRecommendationUserId>>>
-export type GetApiRecommendationUserIdQueryError = ErrorType<unknown>
+export type GetApiRecommendationsUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRecommendationsUserId>>>
+export type GetApiRecommendationsUserIdQueryError = ErrorType<unknown>
 
 
-export function useGetApiRecommendationUserId<TData = Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError = ErrorType<unknown>>(
+export function useGetApiRecommendationsUserId<TData = Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError = ErrorType<unknown>>(
  userId: string,
-    params: undefined |  GetApiRecommendationUserIdParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError, TData>> & Pick<
+    params: undefined |  GetApiRecommendationsUserIdParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getApiRecommendationUserId>>,
+          Awaited<ReturnType<typeof getApiRecommendationsUserId>>,
           TError,
-          Awaited<ReturnType<typeof getApiRecommendationUserId>>
+          Awaited<ReturnType<typeof getApiRecommendationsUserId>>
         > , 'initialData'
       >, request?: SecondParameter<typeof axiosInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetApiRecommendationUserId<TData = Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError = ErrorType<unknown>>(
+export function useGetApiRecommendationsUserId<TData = Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError = ErrorType<unknown>>(
  userId: string,
-    params?: GetApiRecommendationUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError, TData>> & Pick<
+    params?: GetApiRecommendationsUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getApiRecommendationUserId>>,
+          Awaited<ReturnType<typeof getApiRecommendationsUserId>>,
           TError,
-          Awaited<ReturnType<typeof getApiRecommendationUserId>>
+          Awaited<ReturnType<typeof getApiRecommendationsUserId>>
         > , 'initialData'
       >, request?: SecondParameter<typeof axiosInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetApiRecommendationUserId<TData = Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError = ErrorType<unknown>>(
+export function useGetApiRecommendationsUserId<TData = Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError = ErrorType<unknown>>(
  userId: string,
-    params?: GetApiRecommendationUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+    params?: GetApiRecommendationsUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetApiRecommendationUserId<TData = Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError = ErrorType<unknown>>(
+export function useGetApiRecommendationsUserId<TData = Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError = ErrorType<unknown>>(
  userId: string,
-    params?: GetApiRecommendationUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+    params?: GetApiRecommendationsUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetApiRecommendationUserIdQueryOptions(userId,params,options)
+  const queryOptions = getGetApiRecommendationsUserIdQueryOptions(userId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getApiRecommendationsAlbumAlbumId = (
+    albumId: string,
+    params?: GetApiRecommendationsAlbumAlbumIdParams,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Recommendations/album/${albumId}`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiRecommendationsAlbumAlbumIdQueryKey = (albumId?: string,
+    params?: GetApiRecommendationsAlbumAlbumIdParams,) => {
+    return [
+    `/api/Recommendations/album/${albumId}`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getGetApiRecommendationsAlbumAlbumIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError = ErrorType<unknown>>(albumId: string,
+    params?: GetApiRecommendationsAlbumAlbumIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiRecommendationsAlbumAlbumIdQueryKey(albumId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>> = ({ signal }) => getApiRecommendationsAlbumAlbumId(albumId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(albumId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiRecommendationsAlbumAlbumIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>>
+export type GetApiRecommendationsAlbumAlbumIdQueryError = ErrorType<unknown>
+
+
+export function useGetApiRecommendationsAlbumAlbumId<TData = Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError = ErrorType<unknown>>(
+ albumId: string,
+    params: undefined |  GetApiRecommendationsAlbumAlbumIdParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiRecommendationsAlbumAlbumId<TData = Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError = ErrorType<unknown>>(
+ albumId: string,
+    params?: GetApiRecommendationsAlbumAlbumIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiRecommendationsAlbumAlbumId<TData = Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError = ErrorType<unknown>>(
+ albumId: string,
+    params?: GetApiRecommendationsAlbumAlbumIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiRecommendationsAlbumAlbumId<TData = Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError = ErrorType<unknown>>(
+ albumId: string,
+    params?: GetApiRecommendationsAlbumAlbumIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsAlbumAlbumId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiRecommendationsAlbumAlbumIdQueryOptions(albumId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getApiRecommendationsHealth = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Recommendations/health`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiRecommendationsHealthQueryKey = () => {
+    return [
+    `/api/Recommendations/health`
+    ] as const;
+    }
+
+    
+export const getGetApiRecommendationsHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiRecommendationsHealthQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRecommendationsHealth>>> = ({ signal }) => getApiRecommendationsHealth(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiRecommendationsHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRecommendationsHealth>>>
+export type GetApiRecommendationsHealthQueryError = ErrorType<unknown>
+
+
+export function useGetApiRecommendationsHealth<TData = Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiRecommendationsHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getApiRecommendationsHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiRecommendationsHealth<TData = Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiRecommendationsHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getApiRecommendationsHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiRecommendationsHealth<TData = Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiRecommendationsHealth<TData = Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRecommendationsHealth>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiRecommendationsHealthQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

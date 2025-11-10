@@ -1,22 +1,22 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { Auth0Provider } from '@auth0/auth0-react';
-import { AuthAxiosProvider } from './context/AxiosAuthProvider';
-import App from './App';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { Auth0Provider } from "@auth0/auth0-react";
+import { AuthAxiosProvider } from "./context/AxiosAuthProvider";
+import App from "./App";
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Auth0Provider
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
-        redirect_uri: window.location.origin,
+        redirect_uri: "http://localhost:5173/dashboard",
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email'
+        scope: "openid profile email",
       }}
     >
       <AuthAxiosProvider>
-      <App />
+        <App />
       </AuthAxiosProvider>
     </Auth0Provider>
   </React.StrictMode>

@@ -65,6 +65,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -72,7 +79,7 @@
             "description": "OK"
           }
         },
-        "x-requiresAuth": false
+        "x-requiresAuth": true
       },
       "post": {
         "tags": [
@@ -190,14 +197,55 @@
         "x-requiresAuth": true
       }
     },
-    "/api/Recommendation/{userId}": {
+    "/api/Recommendations/{userId}": {
       "get": {
         "tags": [
-          "Recommendation"
+          "Recommendations"
         ],
         "parameters": [
           {
             "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "content"
+            }
+          },
+          {
+            "name": "topN",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": false
+      }
+    },
+    "/api/Recommendations/album/{albumId}": {
+      "get": {
+        "tags": [
+          "Recommendations"
+        ],
+        "parameters": [
+          {
+            "name": "albumId",
             "in": "path",
             "required": true,
             "schema": {
@@ -214,6 +262,19 @@
               "default": 5
             }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": false
+      }
+    },
+    "/api/Recommendations/health": {
+      "get": {
+        "tags": [
+          "Recommendations"
         ],
         "responses": {
           "200": {

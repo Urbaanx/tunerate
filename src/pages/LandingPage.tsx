@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
-import { usePostApiUsersSync } from '../api/endpoints/tunerateApi';
+import React, { useEffect, useState } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import {
+  usePostApiUsersSync,
+  useGetApiUsersByAuth0idAuth0Id,
+} from "../api/endpoints/tunerateApi";
 
 const LandingPage: React.FC = () => {
   const {
@@ -15,140 +18,169 @@ const LandingPage: React.FC = () => {
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const { mutate: postUsersSync } = usePostApiUsersSync({
-    request: accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined,
+    request: accessToken
+      ? { headers: { Authorization: `Bearer ${accessToken}` } }
+      : undefined,
   });
+
+  // Added: fetch local user (synced from backend)
+  const { data: localUser } = useGetApiUsersByAuth0idAuth0Id<any, unknown>(
+    user?.sub ?? ""
+  );
+
+  // detect Auth0 DB user and prefer backend-synced nickname -> username -> nickname -> email
+  const isDbUser =
+    !!user &&
+    (user.sub?.startsWith?.("auth0|") ||
+      user?.identities?.[0]?.provider === "auth0");
+
+  const displayName = isDbUser
+    ? localUser?.nickname ?? user?.username ?? user?.nickname ?? user?.email
+    : user?.name ?? user?.email;
+
   const [synced, setSynced] = useState(false);
- 
-   useEffect(() => {
-     if (!isAuthenticated) {
-       setAccessToken(null);
-       console.log('User not authenticated');
-       return;
-     }
- 
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAccessToken(null);
+      console.log("User not authenticated");
+      return;
+    }
+
     (async () => {
       try {
-        console.log('User object:', user);
-        console.log('Using audience =', audience);
+        console.log("User object:", user);
+        console.log("Using audience =", audience);
 
         const token = await getAccessTokenSilently({
           authorizationParams: {
             audience: audience,
-            scope: 'openid profile email',
+            scope: "openid profile email",
           },
         });
-        console.log('Auth0 access token:', token);
+        console.log("Auth0 access token:", token);
         setAccessToken(token ?? null);
-
       } catch (err: any) {
-        console.error('Failed to obtain Auth0 token:', err);
-        if (err?.error) console.error('error:', err.error);
-        if (err?.error_description) console.error('error_description:', err.error_description);
-        if (err?.message) console.error('message:', err.message);
+        console.error("Failed to obtain Auth0 token:", err);
+        if (err?.error) console.error("error:", err.error);
+        if (err?.error_description)
+          console.error("error_description:", err.error_description);
+        if (err?.message) console.error("message:", err.message);
 
-        console.error('Sprawdź: VITE_audience musi dokładnie zgadzać się z Identifier w Auth0 → APIs oraz Allowed Callback/Origins w aplikacji.');
+        console.error(
+          "Sprawdź: VITE_audience musi dokładnie zgadzać się z Identifier w Auth0 → APIs oraz Allowed Callback/Origins w aplikacji."
+        );
         setAccessToken(null);
       }
     })();
-   }, [isAuthenticated, getAccessTokenSilently, user, audience]);
- 
-   // osobny efekt uruchamiający sync użytkownika raz, gdy mamy token
-    useEffect(() => {
+  }, [isAuthenticated, getAccessTokenSilently, user, audience]);
+
+  // osobny efekt uruchamiający sync użytkownika raz, gdy mamy token
+  useEffect(() => {
     if (!isAuthenticated || !accessToken || synced) return;
 
     postUsersSync(undefined, {
       onSuccess: (res) => {
-        console.log('✅ User sync succeeded:', res);
+        console.log("✅ User sync succeeded:", res);
         setSynced(true);
       },
       onError: (err) => {
-        console.error('❌ User sync failed:', err);
+        console.error("❌ User sync failed:", err);
         setSynced(true);
       },
       // 💡 To ważne: Orval przekazuje meta dalej do axiosInstance -> options
       // If you need to pass headers, check your API hook's documentation for the correct way.
     });
   }, [isAuthenticated, accessToken, synced, postUsersSync]);
- 
-   const copyToClipboard = async (text: string | null) => {
-     if (!text) return;
-     try {
-       if (navigator.clipboard && navigator.clipboard.writeText) {
-         await navigator.clipboard.writeText(text);
-       } else {
-         const textarea = document.createElement('textarea');
-         textarea.value = text;
-         document.body.appendChild(textarea);
-         textarea.select();
-         document.execCommand('copy');
-         document.body.removeChild(textarea);
-       }
-       alert('Token skopiowany do schowka');
-     } catch {
-       alert('Nie udało się skopiować tokenu');
-     }
-   };
 
-   if (isLoading) {
-     return (
-       <div className="h-screen flex items-center justify-center bg-black text-gray-400">
-         Loading...
-       </div>
-     );
-   }
+  const copyToClipboard = async (text: string | null) => {
+    if (!text) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      alert("Token skopiowany do schowka");
+    } catch {
+      alert("Nie udało się skopiować tokenu");
+    }
+  };
 
-   return (
-     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white flex flex-col">
-       {/* MAIN CONTENT */}
-       <main className="flex flex-col items-center justify-center flex-1 px-6 text-center">
-         <h2 className="text-6xl md:text-7xl font-extrabold mb-6 drop-shadow-lg">
-           Odkrywaj muzykę
-         </h2>
-         <p className="text-lg md:text-xl text-gray-300 max-w-2xl mb-10">
-           Oceniaj, recenzuj i odkrywaj swoje ulubione albumy. Sztuczna inteligencja pomoże Ci znaleźć kolejne hity dopasowane do Twojego gustu.
-         </p>
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-black text-gray-400">
+        Loading...
+      </div>
+    );
+  }
 
-         {!isAuthenticated ? (
-           <button
-             onClick={() => loginWithRedirect()}
-             className="px-10 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:scale-105 transition transform"
-           >
-             Zaloguj się, aby zacząć
-           </button>
-         ) : (
-           <div className="w-full max-w-2xl bg-black bg-opacity-40 p-6 rounded-xl shadow-lg">
-             <h3 className="text-2xl font-semibold mb-2">Witaj, {user?.name ?? user?.email}</h3>
-             <p className="text-sm text-gray-300 mb-4">
-               Masz dostęp do zasobów API — poniżej znajduje się token autoryzacyjny (do użytku w nagłówku Authorization: Bearer &lt;token&gt;).
-             </p>
+  return (
+    <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white flex flex-col">
+      {/* MAIN CONTENT */}
+      <main className="flex flex-col items-center justify-center flex-1 px-6 text-center">
+        <h2 className="text-6xl md:text-7xl font-extrabold mb-6 drop-shadow-lg">
+          Odkrywaj muzykę
+        </h2>
+        <p className="text-lg md:text-xl text-gray-300 max-w-2xl mb-10">
+          Oceniaj, recenzuj i odkrywaj swoje ulubione albumy. Sztuczna
+          inteligencja pomoże Ci znaleźć kolejne hity dopasowane do Twojego
+          gustu.
+        </p>
 
-             {accessToken ? (
-               <div className="flex flex-col gap-2">
-                 <pre className="break-words text-sm bg-gray-900 bg-opacity-50 p-3 rounded-md text-left max-h-40 overflow-auto">{accessToken}</pre>
-                 <div className="flex gap-2 justify-center">
-                   <button
-                     onClick={() => copyToClipboard(accessToken)}
-                     className="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 transition"
-                   >
-                     Kopiuj access token
-                   </button>
-                 </div>
-               </div>
-             ) : (
-               <p className="text-gray-400">
-                 Trwa pobieranie tokenu... (jeśli token nie pojawi się, sprawdź konfigurację VITE_audience oraz ustawienia aplikacji w Auth0)
-               </p>
-             )}
-           </div>
-         )}
-       </main>
+        {!isAuthenticated ? (
+          <button
+            onClick={() => loginWithRedirect()}
+            className="px-10 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:scale-105 transition transform"
+          >
+            Zaloguj się, aby zacząć
+          </button>
+        ) : (
+          <div className="w-full max-w-2xl bg-black bg-opacity-40 p-6 rounded-xl shadow-lg">
+            <h3 className="text-2xl font-semibold mb-2">
+              Witaj, {displayName}
+            </h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Masz dostęp do zasobów API — poniżej znajduje się token
+              autoryzacyjny (do użytku w nagłówku Authorization: Bearer
+              &lt;token&gt;).
+            </p>
 
-       {/* FOOTER */}
-       <footer className="text-gray-500 text-sm text-center py-6">
-         &copy; 2025 TuneRate. Wszystkie prawa zastrzeżone.
-       </footer>
-     </div>
-   );
+            {accessToken ? (
+              <div className="flex flex-col gap-2">
+                <pre className="break-words text-sm bg-gray-900 bg-opacity-50 p-3 rounded-md text-left max-h-40 overflow-auto">
+                  {accessToken}
+                </pre>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => copyToClipboard(accessToken)}
+                    className="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 transition"
+                  >
+                    Kopiuj access token
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-400">
+                Trwa pobieranie tokenu... (jeśli token nie pojawi się, sprawdź
+                konfigurację VITE_audience oraz ustawienia aplikacji w Auth0)
+              </p>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* FOOTER */}
+      <footer className="text-gray-500 text-sm text-center py-6">
+        &copy; 2025 TuneRate. Wszystkie prawa zastrzeżone.
+      </footer>
+    </div>
+  );
 };
 
 export default LandingPage;

@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import {
   useGetApiUserAlbums,
-  useGetApiRecommendationUserId,
+  useGetApiRecommendationsUserId,
   useGetApiUsersByAuth0idAuth0Id,
+  usePostApiUsersSync,
 } from "../api/endpoints/tunerateApi";
 import AlbumCard from "../components/AlbumCard";
 import { Loader2 } from "lucide-react";
@@ -13,24 +14,63 @@ const DashboardPage: React.FC = () => {
     useAuth0();
   const [token, setToken] = useState<string | null>(null);
 
+  // Added: audience and users sync hook + synced state
+  const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
+  const { mutate: postUsersSync } = usePostApiUsersSync({
+    request: token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : undefined,
+  });
+  const [synced, setSynced] = useState(false);
+
   useEffect(() => {
     let mounted = true;
     if (!isAuthenticated) {
       setToken(null);
       return;
     }
-    getAccessTokenSilently()
+    // request token with audience and scope like on LandingPage
+    getAccessTokenSilently({
+      authorizationParams: {
+        audience: audience,
+        scope: "openid profile email",
+      },
+    })
       .then((t) => {
         if (mounted) setToken(t);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("Błąd pobierania tokena:", err);
+        if (err?.error) console.error("error:", err.error);
+        if (err?.error_description)
+          console.error("error_description:", err.error_description);
+        if (err?.message) console.error("message:", err.message);
+        console.error(
+          "Sprawdź: VITE_audience musi dokładnie zgadzać się z Identifier w Auth0 → APIs oraz Allowed Callback/Origins w aplikacji."
+        );
         if (mounted) setToken(null);
       });
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated, getAccessTokenSilently]);
+  }, [isAuthenticated, getAccessTokenSilently, audience]);
+
+  // effect to run user sync once we have token (same logic as LandingPage)
+  useEffect(() => {
+    if (!isAuthenticated || !token || synced) return;
+
+    postUsersSync(undefined, {
+      onSuccess: (res) => {
+        console.log("✅ User sync succeeded:", res);
+        setSynced(true);
+      },
+      onError: (err) => {
+        console.error("❌ User sync failed:", err);
+        setSynced(true);
+      },
+      // Note: Orval passes meta through to axiosInstance -> options
+    });
+  }, [isAuthenticated, token, synced, postUsersSync]);
 
   const { data: localUser } = useGetApiUsersByAuth0idAuth0Id<any, unknown>(
     user?.sub ?? ""
@@ -53,9 +93,9 @@ const DashboardPage: React.FC = () => {
     isLoading: isRecLoading,
     isError: isRecError,
     refetch: refetchRecs,
-  } = useGetApiRecommendationUserId<any, unknown>(
+  } = useGetApiRecommendationsUserId<any, unknown>(
     localUser?.id ?? "",
-    { topN: 5 },
+    { topN: 5, type: "hybrid" },
     {
       query: { enabled: !!token && !!localUser?.id },
     }
@@ -66,6 +106,17 @@ const DashboardPage: React.FC = () => {
       refetchRecs();
     }
   }, [token, localUser?.id, refetch, refetchRecs]);
+
+  const isDbUser =
+    !!user &&
+    (user.sub?.startsWith?.("auth0|") ||
+      user?.identities?.[0]?.provider === "auth0");
+
+  // prefer backend-synced nickname (backend saves Username into Nickname),
+  // then Auth0 `username`, then `nickname` from Auth0 profile, then email
+  const displayName = isDbUser
+    ? localUser?.nickname ?? user?.username ?? user?.nickname ?? user?.email
+    : user?.name ?? user?.email;
 
   const recentAlbums = Array.isArray(userAlbums) ? userAlbums.slice(0, 6) : [];
   const albumCount = Array.isArray(userAlbums) ? userAlbums.length : 0;
@@ -111,9 +162,7 @@ const DashboardPage: React.FC = () => {
         )}
         <div>
           <h1 className="text-4xl font-extrabold">Twój panel</h1>
-          <p className="text-gray-300 mt-1">
-            Witaj, {user?.name ?? user?.email}! 👋
-          </p>
+          <p className="text-gray-300 mt-1">Witaj, {displayName}! 👋</p>
           {albumCount > 0 && (
             <p className="text-sm text-gray-400 mt-1">
               Masz{" "}
@@ -192,6 +241,7 @@ const DashboardPage: React.FC = () => {
             <AlbumCard
               key={album.id}
               album={{
+                id: album.id,
                 title: album.title,
                 artist: album.artist,
                 coverUrl: album.coverUrl,
@@ -229,6 +279,7 @@ const DashboardPage: React.FC = () => {
             <AlbumCard
               key={album.id}
               album={{
+                id: album.id,
                 title: album.title,
                 artist: album.artist ?? "Nieznany artysta",
                 coverUrl: album.coverUrl,

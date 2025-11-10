@@ -10,7 +10,9 @@ import {
   usePostApiReviewsAlbumId,
   usePutApiReviewsReviewId,
   useDeleteApiReviewsReviewId,
+  useGetApiRecommendationsAlbumAlbumId,
 } from "../api/endpoints/tunerateApi";
+import AlbumCard from "../components/AlbumCard";
 import {
   Loader2,
   Star,
@@ -85,6 +87,17 @@ const AlbumDetailsPage: React.FC = () => {
       },
     }
   );
+
+  // === Pobranie rekomendacji z backendu ===
+  const { data: recommendations } = useGetApiRecommendationsAlbumAlbumId<
+    any,
+    unknown
+  >(id!, { topN: 5 }, { query: { enabled: !!token && !!id } });
+
+  // Wyciągamy listę rekomendacji tak jak w DashboardPage
+  const recList = Array.isArray(recommendations?.recommendations)
+    ? recommendations!.recommendations
+    : [];
 
   const reviews = reviewsResponse?.items ?? [];
   const totalPages = reviewsResponse?.totalPages ?? 1;
@@ -262,7 +275,8 @@ const AlbumDetailsPage: React.FC = () => {
             <div className="flex items-center mb-4">
               <Star className="text-yellow-400 w-5 h-5 mr-1" />
               <span className="text-lg font-semibold">
-                {album.averageRating ? album.averageRating.toFixed(1) : "—"} / 10
+                {album.averageRating ? album.averageRating.toFixed(1) : "—"} /
+                10
               </span>
             </div>
             <button
@@ -428,35 +442,58 @@ const AlbumDetailsPage: React.FC = () => {
                   </li>
                 ))}
               </ul>
-
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center space-x-4 mt-6">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                    className="px-3 py-2 bg-gray-800 rounded-lg disabled:opacity-40 flex items-center"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" /> Poprzednia
-                  </button>
-
-                  <div className="text-gray-300">
-                    Strona <strong className="text-white">{page}</strong> z{" "}
-                    <strong className="text-white">{totalPages}</strong> —{" "}
-                    {totalCount} recenzji
-                  </div>
-
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages}
-                    className="px-3 py-2 bg-gray-800 rounded-lg disabled:opacity-40 flex items-center"
-                  >
-                    Następna <ChevronRight className="w-4 h-4 ml-1" />
-                  </button>
-                </div>
-              )}
             </>
           )}
         </div>
+        {/* 🔹 Sekcja podobnych albumów — RENDEROWANA ZAWSZE */}
+        <div className="max-w-5xl mx-auto mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Podobne albumy</h2>
+          {recList.length === 0 ? (
+            <p className="text-gray-400">
+              Brak podobnych albumów do wyświetlenia.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recList.map((rec: any) => (
+                <AlbumCard
+                  key={rec.id}
+                  album={{
+                    title: rec.title,
+                    artist: rec.artist ?? "Nieznany artysta",
+                    coverUrl: rec.coverUrl,
+                    releaseDate: rec.releaseDate,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-4 mt-6">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-3 py-2 bg-gray-800 rounded-lg disabled:opacity-40 flex items-center"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Poprzednia
+            </button>
+
+            <div className="text-gray-300">
+              Strona <strong className="text-white">{page}</strong> z{" "}
+              <strong className="text-white">{totalPages}</strong> —{" "}
+              {totalCount} recenzji
+            </div>
+
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="px-3 py-2 bg-gray-800 rounded-lg disabled:opacity-40 flex items-center"
+            >
+              Następna <ChevronRight className="w-4 h-4 ml-1" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
