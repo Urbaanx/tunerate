@@ -7,6 +7,8 @@ using tunerate_api.Models;
 using RestSharp;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System;
+using System.Linq;
 
 namespace tunerate_api.Controllers
 {
@@ -42,6 +44,28 @@ namespace tunerate_api.Controllers
             return Ok(user);
         }
         
+        [HttpGet("getAuth0User")]
+        public async Task<IActionResult> GetUser()
+        {
+            var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (auth0Id == null) return Unauthorized("Brak Auth0 ID.");
+            
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
+            if (user == null) return NotFound("Użytkownik nie znaleziony.");
+            
+            var client = new RestClient($"https://{_conf["Auth0:Domain"]}/api/v2/users/{auth0Id}");
+            var token = GetAuth0ManagementToken();
+            var request = new RestRequest
+            {
+                Method = Method.Get
+            };
+            request.AddHeader("authorization", $"Bearer {token}");
+            var response = client.Execute(request);
+            if (response.Content == null) return BadRequest();
+            var json = JsonSerializer.Deserialize<Auth0UserResponse>(response.Content);
+            return Ok(json);
+        }
+        
         [HttpPost("sync")]
         public async Task<IActionResult> SyncUser()
         {
@@ -65,10 +89,15 @@ namespace tunerate_api.Controllers
             if (response.Content == null) return BadRequest("Nie udało się pobrać danych użytkownika z Auth0.");
             var json = JsonSerializer.Deserialize<Auth0UserResponse>(response.Content);
 
+            Console.WriteLine($"json: {response.Content}");
+            Console.WriteLine($"provider: '{json?.Provider}', username: '{json?.Username}'"); // opcjonalne debug
+
             user = new User
             {
                 Auth0Id = auth0Id,
-                Nickname = json?.Name ?? json?.Nickname ?? json?.Email ?? "Anon"
+                Nickname = string.Equals(json?.Provider, "auth0", StringComparison.OrdinalIgnoreCase)
+                    ? json?.Username ?? json?.Name ?? json?.Email ?? "Anon"
+                    : json?.Nickname ?? json?.Name ?? json?.Email ?? "Anon"
             };
 
             _context.Users.Add(user);
@@ -100,7 +129,29 @@ namespace tunerate_api.Controllers
         public string? Nickname { get; set; }
         [JsonPropertyName("name")]
         public string? Name { get; set; }
+        [JsonPropertyName("username")]
+        public string? Username { get; set; }
         [JsonPropertyName("email")]
         public string? Email { get; set; }
+        [JsonPropertyName("identities")]
+        public List<Auth0Identity>? Identities { get; set; }
+        
+        [JsonIgnore]
+        public string? Provider => Identities?.FirstOrDefault()?.Provider;
+    }
+
+    public class Auth0Identity
+    {
+        [JsonPropertyName("user_id")]
+        public string? UserId { get; set; }
+
+        [JsonPropertyName("provider")]
+        public string? Provider { get; set; }
+
+        [JsonPropertyName("connection")]
+        public string? Connection { get; set; }
+
+        [JsonPropertyName("isSocial")]
+        public bool? IsSocial { get; set; }
     }
 }
