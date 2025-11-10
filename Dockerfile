@@ -1,22 +1,19 @@
-FROM python:3.11-slim
-
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    python3-dev \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# Use conda-forge packages so lightfm is installed as a binary (no local build)
+FROM continuumio/miniconda3:latest
 
 WORKDIR /app
 
-COPY requirements.txt .
+# copy environment file and create conda env
+COPY environment.yml .
 
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install --no-cache-dir -r requirements.txt
+RUN conda env create -f environment.yml \
+    && conda clean -afy
+
+# use conda run to execute commands inside the env
+SHELL ["conda", "run", "-n", "tunerate", "/bin/bash", "-lc"]
 
 COPY . .
 
 EXPOSE 8001
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]
-
+CMD ["conda", "run", "--no-capture-output", "-n", "tunerate", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]

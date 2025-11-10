@@ -1,0 +1,16 @@
+name: tunerate
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - fastapi
+  - uvicorn
+  - pandas
+  - sqlalchemy
+  - scikit-learn
+  - numpy
+  - lightfm
+  - psycopg2
+  - pip
+  - pip:
+    - psycopg2-binary  # opcjonalnie jeśli wolisz pip-ową paczkę

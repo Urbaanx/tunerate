@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-class RecommenderSystem:
+class ContentBasedRecommender:
     def __init__(self):
         self.album_features = None
         self.trained = False
@@ -87,12 +87,20 @@ class RecommenderSystem:
         recs = recs[~recs["AlbumId"].isin(user_albums)]
         top_recs = recs.head(top_n)
 
-        # 🔹 Dopasuj dane albumów
+        # 🔹 Dopasuj dane albumów i DOŁĄCZ similarity, zachowując kolejność z top_recs
         df_albums_local = df_albums.copy()
         if "Id" in df_albums_local.columns:
             df_albums_local["Id"] = df_albums_local["Id"].astype(str)
 
         recommended_albums = df_albums_local[df_albums_local["Id"].isin(top_recs["AlbumId"])].copy()
+        # dołącz similarity
+        recommended_albums = recommended_albums.merge(
+            top_recs[["AlbumId", "similarity"]],
+            left_on="Id",
+            right_on="AlbumId",
+            how="left"
+        )
+        recommended_albums = recommended_albums.sort_values(by="similarity", ascending=False)
 
         # 🔹 Dołącz nazwę artysty
         if not self.df_artists.empty and "Id" in self.df_artists.columns:
@@ -108,7 +116,7 @@ class RecommenderSystem:
         else:
             recommended_albums["Artist"] = None
 
-        # 🔹 Zamień nazwy kolumn na camelCase i zachowaj wszystkie wymagane pola
+        # 🔹 Zamień nazwy kolumn na camelCase i zachowaj wszystkie wymagane pola (w tym similarity)
         rename_map = {
             "Id": "id",
             "Title": "title",
@@ -125,8 +133,68 @@ class RecommenderSystem:
 
         recommended_albums = recommended_albums.rename(columns=rename_map)
 
-        # 🔹 Wybierz tylko potrzebne pola
-        final_cols = ["id", "title", "artist", "artistId", "releaseDate", "externalId", "coverUrl"]
-        recommended_albums = recommended_albums[final_cols]
+        # upewnij się, że similarity jest obecne
+        if "similarity" not in recommended_albums.columns:
+            recommended_albums["similarity"] = None
 
-        return recommended_albums.to_dict(orient="records")
+        final_cols = ["id", "title", "artist", "artistId", "releaseDate", "externalId", "coverUrl", "similarity"]
+        return recommended_albums[final_cols].to_dict(orient="records")
+    
+    def recommend_similar(self, album_id: str, df_albums, df_tags, df_artists=None, top_n: int = 5):
+        """Zwraca podobne albumy na podstawie tagów."""
+        if not self.trained or self.album_features is None:
+            print("⚠️ System nie został wytrenowany.")
+            return []
+
+        album_id = str(album_id)
+
+        if album_id not in self.album_features["AlbumId"].values:
+            print(f"⚠️ Album {album_id} nie znajduje się w danych tagów.")
+            return []
+
+        # 🔹 Oblicz podobieństwo między danym albumem a wszystkimi innymi
+        tag_vectors = self.album_features.set_index("AlbumId")
+        sim_matrix = cosine_similarity(tag_vectors)
+        sim_df = pd.DataFrame(sim_matrix, index=tag_vectors.index, columns=tag_vectors.index)
+
+        similar_albums = (
+            sim_df[album_id]
+            .sort_values(ascending=False)
+            .drop(album_id)  # usuń ten sam album
+            .head(top_n)
+            .index.tolist()
+        )
+
+        df_albums["Id"] = df_albums["Id"].astype(str)
+        recs = df_albums[df_albums["Id"].isin(similar_albums)].copy()
+
+        if df_artists is not None and not df_artists.empty:
+            recs = recs.merge(
+                df_artists[["Id", "Name"]],
+                left_on="ArtistId",
+                right_on="Id",
+                how="left",
+                suffixes=("", "_Artist")
+            )
+            recs.rename(columns={"Name": "Artist"}, inplace=True)
+            recs.drop(columns=["Id_Artist"], errors="ignore", inplace=True)
+        else:
+            recs["Artist"] = None
+
+        rename_map = {
+            "Id": "id",
+            "Title": "title",
+            "Artist": "artist",
+            "ArtistId": "artistId",
+            "ReleaseDate": "releaseDate",
+            "ExternalId": "externalId",
+            "CoverUrl": "coverUrl"
+        }
+
+        for old_col, new_col in rename_map.items():
+            if old_col not in recs.columns:
+                recs[old_col] = None
+
+        recs = recs.rename(columns=rename_map)
+        final_cols = ["id", "title", "artist", "artistId", "releaseDate", "externalId", "coverUrl"]
+        return recs[final_cols].to_dict(orient="records")
