@@ -13,4 +13,4 @@ dependencies:
   - psycopg2
   - pip
   - pip:
-    - psycopg2-binary  # opcjonalnie jeśli wolisz pip-ową paczkę
+    - psycopg2-binary

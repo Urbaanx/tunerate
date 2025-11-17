@@ -33,7 +33,7 @@ services:
     container_name: recommender
     restart: always
     ports:
-      - 8001:8001  # udostępniamy port na localhost
+      - 8001:8001
     environment:
       DB_HOST: db
       DB_PORT: 5432

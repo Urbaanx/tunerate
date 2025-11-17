@@ -22,28 +22,23 @@ class CollaborativeRecommender:
             self.trained = False
             return
 
-        # 🔹 Upewnij się, że ID to stringi
         df_reviews["UserId"] = df_reviews["UserId"].astype(str)
         df_reviews["AlbumId"] = df_reviews["AlbumId"].astype(str)
         df_albums["Id"] = df_albums["Id"].astype(str)
 
-        # 🔹 Przygotowanie datasetu LightFM
         dataset = Dataset()
         dataset.fit(
             users=df_reviews["UserId"].unique(),
             items=df_albums["Id"].unique()
         )
 
-        # 🔹 Zbuduj macierz interakcji (np. oceny 1–5 → waga)
         interactions, _ = dataset.build_interactions(
             [(row.UserId, row.AlbumId, float(row.Score)) for _, row in df_reviews.iterrows()]
         )
 
-        # 🔹 Trenuj model LightFM
-        model = LightFM(loss='warp')  # WARP dobrze działa z implicit data
+        model = LightFM(loss='warp')
         model.fit(interactions, epochs=20, num_threads=4)
 
-        # 🔹 Zapamiętaj dane
         self.model = model
         self.dataset = dataset
         self.user_id_map, self.album_id_map, self.user_id_inv, self.album_id_inv = self._create_id_maps(dataset)
@@ -74,14 +69,11 @@ class CollaborativeRecommender:
         user_idx = self.user_id_map[user_id]
         n_items = len(self.album_id_map)
 
-        # 🔹 Predykcja dla wszystkich albumów
         scores = self.model.predict(user_idx, np.arange(n_items))
 
-        # zmapuj indeksy na album ids
         album_ids = [self.album_id_inv[i] for i in range(n_items)]
         scores_df = pd.DataFrame({"Id": album_ids, "score": scores})
 
-        # filtruj itemy już ocenione (jeśli dane są podane)
         if df_reviews is not None and not df_reviews.empty:
             df_reviews_local = df_reviews.copy()
             if "UserId" in df_reviews_local.columns:
@@ -97,9 +89,7 @@ class CollaborativeRecommender:
 
         df_albums["Id"] = df_albums["Id"].astype(str)
         recs = df_albums[df_albums["Id"].isin(top_ids)].copy()
-        # dołącz score w tej samej kolejności co top_ids
         recs = recs.merge(scores_df, left_on="Id", right_on="Id", how="left")
-        # zachowaj kolejność top_ids
         recs["__order"] = recs["Id"].apply(lambda x: top_ids.index(x) if x in top_ids else 9999)
         recs = recs.sort_values("__order").drop(columns=["__order"])
 

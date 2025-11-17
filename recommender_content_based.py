@@ -12,18 +12,15 @@ class ContentBasedRecommender:
             self.trained = False
             return
 
-        # 🔹 Połącz dane tagów w jeden wektor tekstowy na album
         tag_vectors = (
             df_tags.groupby("AlbumId")["Name"]
             .apply(lambda tags: " ".join(tags))
             .reset_index()
         )
 
-        # 🔹 Zamień tagi na macierz binarną (jedno-hot)
         tag_matrix = tag_vectors["Name"].str.get_dummies(sep=" ")
         self.album_features = pd.concat([tag_vectors[["AlbumId"]], tag_matrix], axis=1)
 
-        # --- zapewnij spójność typów ID ---
         self.album_features["AlbumId"] = self.album_features["AlbumId"].astype(str)
         df_albums["Id"] = df_albums["Id"].astype(str)
         if df_user_albums is not None and "UserId" in df_user_albums.columns:
@@ -32,9 +29,7 @@ class ContentBasedRecommender:
         if "UserId" in df_reviews.columns:
             df_reviews["UserId"] = df_reviews["UserId"].astype(str)
             df_reviews["AlbumId"] = df_reviews["AlbumId"].astype(str)
-        # -------------------------------------------------------------------
 
-        # 🔹 Zapamiętaj dane albumów i artystów
         self.df_albums = df_albums
         self.df_artists = df_artists if df_artists is not None else pd.DataFrame()
 
@@ -53,10 +48,8 @@ class ContentBasedRecommender:
         if "AlbumId" in df_reviews_local.columns:
             df_reviews_local["AlbumId"] = df_reviews_local["AlbumId"].astype(str)
 
-        # 🔹 Albumy użytkownika z recenzji
         user_albums = df_reviews_local[df_reviews_local["UserId"] == user_id]["AlbumId"].unique()
 
-        # 🔹 Jeśli brak recenzji, użyj kolekcji
         if len(user_albums) == 0 and df_user_albums is not None:
             df_user_albums_local = df_user_albums.copy()
             if "UserId" in df_user_albums_local.columns:
@@ -70,11 +63,9 @@ class ContentBasedRecommender:
             print(f"⚠️ Brak danych dla użytkownika {user_id}.")
             return []
 
-        # 🔹 Oblicz profil użytkownika
         user_features = self.album_features[self.album_features["AlbumId"].isin(user_albums)].drop(columns=["AlbumId"])
         user_profile = user_features.mean().values.reshape(1, -1)
 
-        # 🔹 Podobieństwo kosinusowe
         album_vectors = self.album_features.drop(columns=["AlbumId"])
         similarities = cosine_similarity(album_vectors, user_profile).flatten()
 
@@ -83,17 +74,14 @@ class ContentBasedRecommender:
             "similarity": similarities
         }).sort_values("similarity", ascending=False)
 
-        # 🔹 Usuń albumy już posiadane
         recs = recs[~recs["AlbumId"].isin(user_albums)]
         top_recs = recs.head(top_n)
 
-        # 🔹 Dopasuj dane albumów i DOŁĄCZ similarity, zachowując kolejność z top_recs
         df_albums_local = df_albums.copy()
         if "Id" in df_albums_local.columns:
             df_albums_local["Id"] = df_albums_local["Id"].astype(str)
 
         recommended_albums = df_albums_local[df_albums_local["Id"].isin(top_recs["AlbumId"])].copy()
-        # dołącz similarity
         recommended_albums = recommended_albums.merge(
             top_recs[["AlbumId", "similarity"]],
             left_on="Id",
@@ -102,7 +90,6 @@ class ContentBasedRecommender:
         )
         recommended_albums = recommended_albums.sort_values(by="similarity", ascending=False)
 
-        # 🔹 Dołącz nazwę artysty
         if not self.df_artists.empty and "Id" in self.df_artists.columns:
             recommended_albums = recommended_albums.merge(
                 self.df_artists[["Id", "Name"]],
@@ -116,7 +103,6 @@ class ContentBasedRecommender:
         else:
             recommended_albums["Artist"] = None
 
-        # 🔹 Zamień nazwy kolumn na camelCase i zachowaj wszystkie wymagane pola (w tym similarity)
         rename_map = {
             "Id": "id",
             "Title": "title",
@@ -133,7 +119,6 @@ class ContentBasedRecommender:
 
         recommended_albums = recommended_albums.rename(columns=rename_map)
 
-        # upewnij się, że similarity jest obecne
         if "similarity" not in recommended_albums.columns:
             recommended_albums["similarity"] = None
 
@@ -152,7 +137,6 @@ class ContentBasedRecommender:
             print(f"⚠️ Album {album_id} nie znajduje się w danych tagów.")
             return []
 
-        # 🔹 Oblicz podobieństwo między danym albumem a wszystkimi innymi
         tag_vectors = self.album_features.set_index("AlbumId")
         sim_matrix = cosine_similarity(tag_vectors)
         sim_df = pd.DataFrame(sim_matrix, index=tag_vectors.index, columns=tag_vectors.index)
@@ -160,7 +144,7 @@ class ContentBasedRecommender:
         similar_albums = (
             sim_df[album_id]
             .sort_values(ascending=False)
-            .drop(album_id)  # usuń ten sam album
+            .drop(album_id)
             .head(top_n)
             .index.tolist()
         )
