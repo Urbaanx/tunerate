@@ -2,23 +2,44 @@
 using RestSharp;
 using System.Text.Json;
 using System.Net;
+using Microsoft.Extensions.Caching.Memory;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace tunerate_api.Services
 {
     public class MusicBrainzService
     {
         private readonly RestClient _client;
+        private readonly RestClient _coverArtClient;
+        private readonly IMemoryCache _cache;
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(5); // ograniczenie równoległości
+        private readonly TimeSpan _searchCacheTtl = TimeSpan.FromMinutes(5);
+        private readonly TimeSpan _coverCacheTtl = TimeSpan.FromDays(1);
 
-        public MusicBrainzService()
+        public MusicBrainzService(IMemoryCache cache)
         {
+            _cache = cache;
             var options = new RestClientOptions("https://musicbrainz.org/ws/2/");
             _client = new RestClient(options);
             _client.AddDefaultHeader("User-Agent", "TuneRate/1.0 (https://tunerate.app)");
+
+            _coverArtClient = new RestClient("https://coverartarchive.org/");
+            _coverArtClient.AddDefaultHeader("User-Agent", "TuneRate/1.0 (https://tunerate.app)");
         }
 
         public async Task<(List<AlbumDto> Items, int TotalCount)> SearchAlbumsAsync(string query, int page, int pageSize, string sort)
         {
+            if (string.IsNullOrWhiteSpace(query))
+                return (new List<AlbumDto>(), 0);
+
             int offset = (page - 1) * pageSize;
+
+            string cacheKey = $"mb_search_{query}_{page}_{pageSize}_{sort}";
+            if (_cache.TryGetValue(cacheKey, out (List<AlbumDto> Items, int TotalCount) cached))
+            {
+                return cached;
+            }
 
             string sortParam = sort switch
             {
@@ -72,19 +93,29 @@ namespace tunerate_api.Services
 
                 if (id != null)
                 {
-                    var coverArtUrl = await GetCoverArtUrlAsync(id);
-
+                    // dodaj bez okładki na razie
                     results.Add(new AlbumDto
                     {
                         Title = title ?? "",
                         Artist = artist,
-                        ArtistId = !string.IsNullOrEmpty(artistId) ? Guid.Parse(artistId) : Guid.Empty,
+                        ArtistId = !string.IsNullOrEmpty(artistId) && Guid.TryParse(artistId, out var g) ? g : Guid.Empty,
                         ReleaseDate = releaseDate,
                         ExternalId = id,
-                        CoverUrl = coverArtUrl
+                        CoverUrl = ""
                     });
                 }
             }
+
+            // równoległe pobieranie okładek z limitem równoległości i cache
+            var tasks = results.Select(async album =>
+            {
+                if (string.IsNullOrEmpty(album.ExternalId)) return;
+
+                var cover = await GetCoverArtUrlCachedAsync(album.ExternalId);
+                album.CoverUrl = cover;
+            }).ToArray();
+
+            await Task.WhenAll(tasks);
 
             results = sort switch
             {
@@ -93,21 +124,38 @@ namespace tunerate_api.Services
                 _ => results
             };
 
-            return (results, totalCount);
+            var final = (results, totalCount);
+            _cache.Set(cacheKey, final, _searchCacheTtl);
+
+            return final;
+        }
+
+        private async Task<string> GetCoverArtUrlCachedAsync(string musicBrainzReleaseId)
+        {
+            if (string.IsNullOrEmpty(musicBrainzReleaseId))
+                return "";
+
+            string key = $"cover_{musicBrainzReleaseId}";
+            if (_cache.TryGetValue(key, out string cached)) return cached;
+
+            // ogranicz równoległość aby nie przekroczyć limitów zewnętrznych API
+            await _semaphore.WaitAsync();
+            try
+            {
+                var cover = await GetCoverArtUrlAsync(musicBrainzReleaseId);
+                _cache.Set(key, cover, _coverCacheTtl);
+                return cover;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         private async Task<string> GetCoverArtUrlAsync(string musicBrainzReleaseId)
         {
-            if (string.IsNullOrEmpty(musicBrainzReleaseId))
-            {
-                return "";
-            }
-
-            var caaClient = new RestClient("https://coverartarchive.org/");
-            caaClient.AddDefaultHeader("User-Agent", "TuneRate/1.0 (https://tunerate.app)");
-
             var request = new RestRequest($"release/{musicBrainzReleaseId}");
-            var response = await caaClient.ExecuteAsync(request);
+            var response = await _coverArtClient.ExecuteAsync(request);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -168,7 +216,6 @@ namespace tunerate_api.Services
                 // 2️⃣ Pobierz tagi z release-group
                 var tagsRequest = new RestRequest($"release-group/{releaseGroupId}?inc=tags&fmt=json");
                 var tagsResponse = await _client.ExecuteAsync(tagsRequest);
-                
 
                 if (tagsResponse.StatusCode != HttpStatusCode.OK || tagsResponse.Content == null)
                     return new List<string>();
@@ -193,6 +240,46 @@ namespace tunerate_api.Services
             }
         }
 
+        public async Task<List<TrackDto>> GetAlbumTracksAsync(string releaseId)
+        {
+            var request = new RestRequest($"release/{releaseId}");
+            request.AddQueryParameter("inc", "recordings");
+            request.AddQueryParameter("fmt", "json");
 
+            var response = await _client.ExecuteAsync(request);
+            if (response.Content == null) return new List<TrackDto>();
+
+            using var json = JsonDocument.Parse(response.Content);
+
+            var result = new List<TrackDto>();
+
+            if (!json.RootElement.TryGetProperty("media", out var mediaArray))
+                return result;
+
+            foreach (var media in mediaArray.EnumerateArray())
+            {
+                if (!media.TryGetProperty("tracks", out var tracks))
+                    continue;
+
+                foreach (var t in tracks.EnumerateArray())
+                {
+                    var title = t.TryGetProperty("title", out var titleProp)
+                        ? titleProp.GetString() ?? ""
+                        : "";
+
+                    var lengthMs = t.TryGetProperty("length", out var lenProp)
+                        ? lenProp.GetInt32()
+                        : 0;
+
+                    result.Add(new TrackDto
+                    {
+                        Title = title,
+                        DurationMs = lengthMs
+                    });
+                }
+            }
+
+            return result;
+        }
     }
 }
