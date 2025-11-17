@@ -8,6 +8,9 @@ import DashboardPage from "../pages/DashboardPage";
 import AlbumDetailsPage from "../pages/AlbumDetailsPage";
 import Navbar from "../components/Navbar";
 import AuthGuard from "../components/AuthGuard";
+import AboutPage from "../pages/AboutPage";
+import PrivacyPage from "../pages/PrivacyPage";
+import ContactPage from "../pages/ContactPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,9 +19,8 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
     mutations: {
-      // 🔹 globalne odświeżanie wszystkich query po każdej mutacji
       onSuccess: () => {
-        queryClient.invalidateQueries(); // bez argumentów = wszystkie query
+        queryClient.invalidateQueries();
       },
       onError: (error) => {
         console.error("Mutation error:", error);
@@ -37,8 +39,11 @@ const AppRouter: React.FC = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="album/:id" element={<AlbumDetailsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/contact" element={<ContactPage />} />
 
-          {/* protected routes - zabezpieczone indywidualnie */}
+          {/* protected routes*/}
           <Route
             path="/collection"
             element={

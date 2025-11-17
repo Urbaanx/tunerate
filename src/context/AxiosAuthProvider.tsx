@@ -13,7 +13,6 @@ export const AuthAxiosProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           try {
             const token = await getAccessTokenSilently();
 
-            // ✅ Poprawny sposób ustawiania nagłówka w Axios v1+
             if (config.headers) {
               config.headers.set
                 ? config.headers.set('Authorization', `Bearer ${token}`)

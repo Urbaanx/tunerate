@@ -13,6 +13,7 @@ import {
   useGetApiRecommendationsAlbumAlbumId,
 } from "../api/endpoints/tunerateApi";
 import AlbumCard from "../components/AlbumCard";
+import TrackPlayer from "../components/TrackPlayer";
 import {
   Loader2,
   Star,
@@ -24,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { toast } from "../utils/toast";
 
 const AlbumDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +49,22 @@ const AlbumDetailsPage: React.FC = () => {
   const [pageSize] = useState<number>(5);
   const [sort, setSort] = useState<string>("newest");
 
+  const [authPromptVisible, setAuthPromptVisible] = useState(false);
+  const [authPromptMessage, setAuthPromptMessage] = useState("");
+
+  const formatTrackDuration = (ms: number): string => {
+    if (!ms || ms <= 0) return "—";
+    const sec = Math.floor(ms / 1000);
+    const hrs = Math.floor(sec / 3600);
+    const mins = Math.floor((sec % 3600) / 60);
+    const secs = sec % 60;
+    if (hrs > 0)
+      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       setToken(null);
@@ -62,7 +80,7 @@ const AlbumDetailsPage: React.FC = () => {
     isLoading: albumLoading,
     isError: albumError,
   } = useGetApiAlbumsId<any, unknown>(id!, {
-    query: { enabled: !!token && !!id },
+    query: { enabled: !!id },
   });
 
   const { data: userAlbums, refetch: refetchUserAlbums } = useGetApiUserAlbums<
@@ -81,20 +99,15 @@ const AlbumDetailsPage: React.FC = () => {
     id!,
     { page, pageSize, sort },
     {
-      query: {
-        enabled: !!token && !!id,
-        queryKey: ["albumReviews", id, page, sort],
-      },
+      query: { enabled: !!id, queryKey: ["albumReviews", id, page, sort] },
     }
   );
 
-  // === Pobranie rekomendacji z backendu ===
   const { data: recommendations } = useGetApiRecommendationsAlbumAlbumId<
     any,
     unknown
-  >(id!, { topN: 5 }, { query: { enabled: !!token && !!id } });
+  >(id!, { topN: 5 }, { query: { enabled: !!id } });
 
-  // Wyciągamy listę rekomendacji tak jak w DashboardPage
   const recList = Array.isArray(recommendations?.recommendations)
     ? recommendations!.recommendations
     : [];
@@ -113,6 +126,8 @@ const AlbumDetailsPage: React.FC = () => {
     if (userAlbums && album) {
       const found = userAlbums.some((a: any) => a.id === album.id);
       setIsInCollection(found);
+    } else {
+      setIsInCollection(false);
     }
   }, [userAlbums, album]);
 
@@ -120,7 +135,16 @@ const AlbumDetailsPage: React.FC = () => {
     setPage(1);
   }, [sort]);
 
+  const requireAuth = (message?: string) => {
+    setAuthPromptMessage(message ?? "Musisz się zalogować");
+    setAuthPromptVisible(true);
+  };
+
   const handleToggleCollection = async () => {
+    if (!isAuthenticated) {
+      requireAuth("Musisz się zalogować, aby zarządzać kolekcją.");
+      return;
+    }
     if (!token || !album) return;
 
     try {
@@ -156,65 +180,81 @@ const AlbumDetailsPage: React.FC = () => {
       if (refetchReviews) await refetchReviews();
     } catch (err) {
       console.error("❌ Błąd przy aktualizacji kolekcji:", err);
-      alert("Nie udało się zaktualizować kolekcji.");
+      toast("Nie udało się zaktualizować kolekcji.", "error");
     }
   };
 
   const handleSubmitReview = async () => {
     if (!id || !newReview.trim() || rating <= 0) {
-      alert("Uzupełnij treść i wybierz ocenę przed wysłaniem.");
+      toast("Uzupełnij treść i wybierz ocenę.", "error");
       return;
     }
+
+    if (!isAuthenticated) {
+      requireAuth("Musisz się zalogować, aby dodać recenzję.");
+      return;
+    }
+
     if (!isInCollection) {
-      alert("Dodaj album do kolekcji, aby móc dodać recenzję.");
+      toast("Dodaj album do kolekcji, aby dodać recenzję.", "info");
       return;
     }
 
     try {
-      await postReviewMutation({
-        albumId: id!,
-        data: { content: newReview.trim(), score: rating },
-      });
+      await postReviewMutation(
+        { albumId: id!, data: { content: newReview.trim(), score: rating } },
+        { request: { headers: { Authorization: `Bearer ${token}` } } } as any
+      );
       setNewReview("");
       setRating(0);
       if (sort === "newest") setPage(1);
       if (refetchReviews) await refetchReviews();
     } catch (err) {
-      console.error("Błąd dodawania recenzji:", err);
-      alert("Nie udało się dodać recenzji.");
+      console.error("❌ Błąd dodawania recenzji:", err);
+      toast("Nie udało się dodać recenzji.", "error");
     }
   };
 
   const handleEditReview = async (reviewId: string) => {
     if (!editContent.trim() || editRating <= 0) {
-      alert("Uzupełnij treść i ocenę.");
+      toast("Uzupełnij treść i ocenę.", "error");
+      return;
+    }
+    if (!isAuthenticated) {
+      requireAuth("Musisz się zalogować, aby edytować recenzję.");
       return;
     }
 
     try {
-      await putReviewMutation({
-        reviewId,
-        data: { content: editContent.trim(), score: editRating },
-      });
+      await putReviewMutation(
+        { reviewId, data: { content: editContent.trim(), score: editRating } },
+        { request: { headers: { Authorization: `Bearer ${token}` } } } as any
+      );
       setEditingReviewId(null);
       setEditContent("");
       setEditRating(0);
       if (refetchReviews) await refetchReviews();
     } catch (err) {
       console.error("❌ Błąd edycji recenzji:", err);
-      alert("Nie udało się zaktualizować recenzji.");
+      toast("Nie udało się zaktualizować recenzji.", "error");
     }
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (!window.confirm("Czy na pewno chcesz usunąć tę recenzję?")) return;
+    if (!window.confirm("Czy na pewno chcesz usunąć recenzję?")) return;
+    if (!isAuthenticated) {
+      requireAuth("Musisz się zalogować, aby usunąć recenzję.");
+      return;
+    }
 
     try {
-      await deleteReviewMutation({ reviewId });
+      await deleteReviewMutation({ reviewId }, {
+        request: { headers: { Authorization: `Bearer ${token}` } },
+      } as any);
       if (refetchReviews) await refetchReviews();
     } catch (err) {
       console.error("❌ Błąd usuwania recenzji:", err);
-      alert("Nie udało się usunąć recenzji.");
+      toast("Nie udało się usunąć recenzji.", "error");
     }
   };
 
@@ -226,23 +266,38 @@ const AlbumDetailsPage: React.FC = () => {
 
   if (authLoading || albumLoading) {
     return (
-      <div className="flex justify-center items-center h-screen text-white">
-        <Loader2 className="animate-spin w-8 h-8 mr-3" />
-        <span>Ładowanie danych albumu...</span>
-      </div>
-    );
-  }
+      <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white flex items-center justify-center p-6">
+        <div className="max-w-3xl w-full bg-black/50 rounded-2xl p-6 border border-white/10 shadow-lg">
+          <div className="flex gap-6 items-center">
+            <div className="w-48 h-48 bg-gray-800 rounded-2xl animate-pulse" />
+            <div className="flex-1">
+              <div className="h-8 bg-gray-800 rounded w-3/4 mb-3 animate-pulse" />
+              <div className="h-5 bg-gray-800 rounded w-1/2 mb-6 animate-pulse" />
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white">
-        <h1 className="text-3xl font-bold mb-4">Musisz się zalogować</h1>
-        <button
-          onClick={() => loginWithRedirect()}
-          className="px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 transition"
-        >
-          Zaloguj się
-        </button>
+              <div className="flex items-center gap-3 mb-4">
+                <Loader2 className="animate-spin w-6 h-6 text-white/80" />
+                <span className="text-gray-300">
+                  Ładowanie danych albumu...
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-white/6"
+                  >
+                    <div className="w-2/3">
+                      <div className="h-4 bg-gray-800 rounded mb-2 animate-pulse" />
+                      <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                    </div>
+                    <div className="w-20 h-4 bg-gray-800 rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -260,6 +315,34 @@ const AlbumDetailsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white p-6">
       <div className="max-w-5xl mx-auto">
+        {authPromptVisible && (
+          <div className="mb-6 p-4 rounded-lg bg-black/60 border border-white/10 flex items-center justify-between">
+            <div className="text-left">
+              <div className="font-semibold text-lg">{authPromptMessage}</div>
+              <div className="text-sm text-gray-300">
+                Zaloguj się, aby kontynuować.
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setAuthPromptVisible(false);
+                  loginWithRedirect();
+                }}
+                className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Zaloguj się
+              </button>
+              <button
+                onClick={() => setAuthPromptVisible(false)}
+                className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-800"
+              >
+                Anuluj
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row gap-6 items-center mb-10">
           <img
             src={album.coverUrl}
@@ -272,6 +355,7 @@ const AlbumDetailsPage: React.FC = () => {
             <p className="text-sm text-gray-400 mb-4">
               Data wydania: {formatDate(album.releaseDate) || "Nieznana"}
             </p>
+
             <div className="flex items-center mb-4">
               <Star className="text-yellow-400 w-5 h-5 mr-1" />
               <span className="text-lg font-semibold">
@@ -279,6 +363,7 @@ const AlbumDetailsPage: React.FC = () => {
                 10
               </span>
             </div>
+
             <button
               onClick={handleToggleCollection}
               className={`px-6 py-3 rounded-lg font-medium transition ${
@@ -292,6 +377,55 @@ const AlbumDetailsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* TRACKLISTA */}
+        {album.tracks && album.tracks.length > 0 && (
+          <div className="bg-black/40 p-6 rounded-2xl border border-white/10 mt-10">
+            <h2 className="text-2xl font-semibold mb-4">Lista utworów</h2>
+
+            <ul className="space-y-3">
+              {album.tracks.map((t: any, i: number) => {
+                const trackNumber = i + 1;
+                return (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between bg-black/50 p-3 rounded-lg border border-white/10"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-8 text-gray-400 font-mono mr-3 text-sm">
+                        {trackNumber}.
+                      </div>
+                      <div>
+                        <div className="text-white font-medium">{t.title}</div>
+                        <div className="text-gray-400 text-sm">
+                          {formatTrackDuration(t.durationMs)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {t.previewUrl ? (
+                      <TrackPlayer url={t.previewUrl} />
+                    ) : (
+                      <span className="text-gray-600 text-sm">
+                        Brak podglądu
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="mt-5 text-gray-300 text-sm">
+              Łączny czas trwania:{" "}
+              <strong className="text-white">
+                {formatTrackDuration(album.totalDurationMs ?? 0)}
+              </strong>
+            </div>
+          </div>
+        )}
+
+        {/* -------------------------------------------
+             RECENZJE 
+        ------------------------------------------- */}
         <div className="bg-black/40 p-6 rounded-2xl border border-white/10">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold">Recenzje użytkowników</h2>
@@ -445,13 +579,14 @@ const AlbumDetailsPage: React.FC = () => {
             </>
           )}
         </div>
-        {/* 🔹 Sekcja podobnych albumów — RENDEROWANA ZAWSZE */}
+
+        {/* ===========================
+              PODONE ALBUMY
+        =========================== */}
         <div className="max-w-5xl mx-auto mt-8">
           <h2 className="text-2xl font-semibold mb-4">Podobne albumy</h2>
           {recList.length === 0 ? (
-            <p className="text-gray-400">
-              Brak podobnych albumów do wyświetlenia.
-            </p>
+            <p className="text-gray-400">Brak podobnych albumów.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recList.map((rec: any) => (

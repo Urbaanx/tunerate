@@ -79,7 +79,7 @@
             "description": "OK"
           }
         },
-        "x-requiresAuth": true
+        "x-requiresAuth": false
       },
       "post": {
         "tags": [
@@ -104,6 +104,19 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": false
+      }
+    },
+    "/api/Albums/preview": {
+      "get": {
+        "tags": [
+          "Albums"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -170,7 +183,7 @@
             "description": "OK"
           }
         },
-        "x-requiresAuth": true
+        "x-requiresAuth": false
       }
     },
     "/api/Albums/{id}": {
@@ -194,7 +207,7 @@
             "description": "OK"
           }
         },
-        "x-requiresAuth": true
+        "x-requiresAuth": false
       }
     },
     "/api/Recommendations/{userId}": {
@@ -534,6 +547,19 @@
               "type": "string"
             }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Users/getAuth0User": {
+      "get": {
+        "tags": [
+          "Users"
         ],
         "responses": {
           "200": {

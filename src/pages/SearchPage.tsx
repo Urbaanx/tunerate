@@ -7,6 +7,7 @@ import {
 } from "../api/endpoints/tunerateApi";
 import AlbumCard from "../components/AlbumCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "../utils/toast"; // <--- added
 
 const SearchPage: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -25,7 +26,7 @@ const SearchPage: React.FC = () => {
     useAuth0();
   const [token, setToken] = useState<string | null>(null);
 
-  // ✅ Token
+  // Token (if logged in)
   useEffect(() => {
     let mounted = true;
     if (isAuthenticated) {
@@ -40,7 +41,7 @@ const SearchPage: React.FC = () => {
     };
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  // ✅ Debounce wpisywania
+  // Debounce wpisywania
   useEffect(() => {
     const timeout = setTimeout(() => {
       setActiveQuery(query.trim());
@@ -49,7 +50,7 @@ const SearchPage: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [query]);
 
-  // 🔹 Wyszukiwanie lokalne (zawsze po całości bazy)
+  // 🔹 Wyszukiwanie lokalne (zawsze dostępne, także dla niezalogowanych)
   const { data: localResults, isFetching: isFetchingLocal } =
     useGetApiAlbums<any>(
       {
@@ -63,13 +64,13 @@ const SearchPage: React.FC = () => {
       },
       {
         query: {
-          enabled: !!token && !!isAuthenticated,
+          enabled: true, // allow searching without authentication
           keepPreviousData: true,
         } as any,
       }
     );
 
-  // 🔹 Wyszukiwanie w MusicBrainz — tylko jeśli brak lokalnych wyników
+  // 🔹 Wyszukiwanie w MusicBrainz
   const {
     data: musicBrainzResults,
     isFetching: isFetchingMB,
@@ -95,8 +96,6 @@ const SearchPage: React.FC = () => {
       localItems.length;
 
     // Nie uruchamiaj wyszukiwania w MusicBrainz dopóki lokalne wyniki są w trakcie pobierania.
-    // Dzięki temu nie będziemy od razu wywoływać refetchMB gdy localResults jeszcze się ładuje
-    // i tymczasowo zwraca pustą listę.
     if (isFetchingLocal) {
       return;
     }
@@ -135,7 +134,6 @@ const SearchPage: React.FC = () => {
 
   const isFetching = isFetchingLocal || isFetchingMB;
 
-  // 🔹 Dodawanie do kolekcji
   const { mutate: postUserAlbum } = usePostApiUserAlbums();
   const handleAddToCollection = async (album: any) => {
     if (!isAuthenticated) {
@@ -158,31 +156,18 @@ const SearchPage: React.FC = () => {
     postUserAlbum(
       { data: payload },
       {
-        onSuccess: () => alert(`Dodano album "${payload.title}" do kolekcji.`),
+        onSuccess: () =>
+          toast(`Dodano album "${payload.title}" do kolekcji.`, "success"),
         onError: (err: any) => {
           if (err?.response?.status === 409) {
-            alert("Ten album już znajduje się w Twojej kolekcji.");
+            toast("Ten album już znajduje się w Twojej kolekcji.", "info");
           } else {
-            alert("Wystąpił błąd przy dodawaniu albumu.");
+            toast("Wystąpił błąd przy dodawaniu albumu.", "error");
           }
         },
       }
     );
   };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white">
-        <h1 className="text-4xl font-bold mb-4">Musisz się zalogować</h1>
-        <button
-          onClick={() => loginWithRedirect()}
-          className="px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 transition"
-        >
-          Zaloguj się
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white p-6">

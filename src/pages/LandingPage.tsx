@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import {
   usePostApiUsersSync,
-  useGetApiUsersByAuth0idAuth0Id,
+  useGetApiAlbumsPreview,
 } from "../api/endpoints/tunerateApi";
+import AlbumCard from "../components/AlbumCard";
 
 const LandingPage: React.FC = () => {
   const {
@@ -22,21 +23,6 @@ const LandingPage: React.FC = () => {
       ? { headers: { Authorization: `Bearer ${accessToken}` } }
       : undefined,
   });
-
-  // Added: fetch local user (synced from backend)
-  const { data: localUser } = useGetApiUsersByAuth0idAuth0Id<any, unknown>(
-    user?.sub ?? ""
-  );
-
-  // detect Auth0 DB user and prefer backend-synced nickname -> username -> nickname -> email
-  const isDbUser =
-    !!user &&
-    (user.sub?.startsWith?.("auth0|") ||
-      user?.identities?.[0]?.provider === "auth0");
-
-  const displayName = isDbUser
-    ? localUser?.nickname ?? user?.username ?? user?.nickname ?? user?.email
-    : user?.name ?? user?.email;
 
   const [synced, setSynced] = useState(false);
 
@@ -75,7 +61,6 @@ const LandingPage: React.FC = () => {
     })();
   }, [isAuthenticated, getAccessTokenSilently, user, audience]);
 
-  // osobny efekt uruchamiający sync użytkownika raz, gdy mamy token
   useEffect(() => {
     if (!isAuthenticated || !accessToken || synced) return;
 
@@ -88,96 +73,247 @@ const LandingPage: React.FC = () => {
         console.error("❌ User sync failed:", err);
         setSynced(true);
       },
-      // 💡 To ważne: Orval przekazuje meta dalej do axiosInstance -> options
-      // If you need to pass headers, check your API hook's documentation for the correct way.
     });
   }, [isAuthenticated, accessToken, synced, postUsersSync]);
 
-  const copyToClipboard = async (text: string | null) => {
-    if (!text) return;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-      alert("Token skopiowany do schowka");
-    } catch {
-      alert("Nie udało się skopiować tokenu");
-    }
-  };
+  // --- preview from backend (3 random albums) ---
+  const {
+    data: previewData,
+    isLoading: previewLoading,
+    isError: previewError,
+    refetch: refetchPreview,
+  } = useGetApiAlbumsPreview<any, unknown>(undefined);
+
+  const previewItems =
+    (previewData as any)?.Items ?? (previewData as any)?.items ?? [];
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-black text-gray-400">
+      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-black/80 to-black text-gray-400">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white flex flex-col">
-      {/* MAIN CONTENT */}
-      <main className="flex flex-col items-center justify-center flex-1 px-6 text-center">
-        <h2 className="text-6xl md:text-7xl font-extrabold mb-6 drop-shadow-lg">
-          Odkrywaj muzykę
-        </h2>
-        <p className="text-lg md:text-xl text-gray-300 max-w-2xl mb-10">
-          Oceniaj, recenzuj i odkrywaj swoje ulubione albumy. Sztuczna
-          inteligencja pomoże Ci znaleźć kolejne hity dopasowane do Twojego
-          gustu.
-        </p>
-
-        {!isAuthenticated ? (
-          <button
-            onClick={() => loginWithRedirect()}
-            className="px-10 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:scale-105 transition transform"
-          >
-            Zaloguj się, aby zacząć
-          </button>
-        ) : (
-          <div className="w-full max-w-2xl bg-black bg-opacity-40 p-6 rounded-xl shadow-lg">
-            <h3 className="text-2xl font-semibold mb-2">
-              Witaj, {displayName}
-            </h3>
-            <p className="text-sm text-gray-300 mb-4">
-              Masz dostęp do zasobów API — poniżej znajduje się token
-              autoryzacyjny (do użytku w nagłówku Authorization: Bearer
-              &lt;token&gt;).
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-900 to-black text-white">
+      {/* HERO */}
+      <header className="py-12">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-20 flex flex-col md:flex-row items-center gap-10">
+          <div className="md:w-1/2">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4">
+              TuneRate — Twoja kolekcja, lepsze rekomendacje
+            </h1>
+            <p className="text-lg text-gray-300 max-w-2xl mb-6">
+              Twórz profil, dodawaj przesłuchane albumy, oceniaj je i pisz
+              recenzje. Otrzymuj rekomendacje dopasowane do Twojego gustu.
             </p>
 
-            {accessToken ? (
-              <div className="flex flex-col gap-2">
-                <pre className="break-words text-sm bg-gray-900 bg-opacity-50 p-3 rounded-md text-left max-h-40 overflow-auto">
-                  {accessToken}
-                </pre>
-                <div className="flex gap-2 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-start"></div>
+          </div>
+
+          <div className="md:w-1/2 flex justify-center md:justify-end">
+            <div className="relative w-full max-w-md">
+              <div className="rounded-2xl bg-gradient-to-br from-indigo-900/60 to-black/50 p-5 shadow-2xl border border-white/6 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-xs text-gray-400">Popularne</div>
+                    <div className="text-sm font-semibold">Propozycje</div>
+                  </div>
                   <button
-                    onClick={() => copyToClipboard(accessToken)}
-                    className="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 transition"
+                    onClick={() => refetchPreview()}
+                    className="text-xs text-gray-300 bg-white/6 px-2 py-1 rounded"
                   >
-                    Kopiuj access token
+                    Odśwież
                   </button>
                 </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {previewLoading ? (
+                    <div className="col-span-3 text-gray-400">Ładowanie...</div>
+                  ) : previewItems && previewItems.length > 0 ? (
+                    previewItems.slice(0, 3).map((a: any, idx: number) => (
+                      <div
+                        key={a.id ?? a.externalId ?? idx}
+                        className="rounded-lg overflow-hidden bg-black/40 hover:scale-105 transform transition"
+                        style={{ minHeight: 100 }}
+                      >
+                        <img
+                          src={a.coverUrl ?? a.CoverUrl ?? undefined}
+                          alt={a.title ?? a.Title ?? "okładka"}
+                          className="w-full h-24 object-cover"
+                        />
+                        <div className="p-2 text-xs text-gray-200">
+                          <div className="font-semibold truncate">
+                            {a.title ?? a.Title}
+                          </div>
+                          <div className="text-gray-400 truncate">
+                            {a.artist ?? a.Artist}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-gray-400">
+                      Brak propozycji
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <p className="text-gray-400">
-                Trwa pobieranie tokenu... (jeśli token nie pojawi się, sprawdź
-                konfigurację VITE_audience oraz ustawienia aplikacji w Auth0)
-              </p>
-            )}
+
+              <div className="absolute -right-6 -bottom-6 hidden md:block">
+                <div className="w-28 h-28 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-500 shadow-xl flex items-center justify-center text-white font-bold">
+                  TR
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+      </header>
+
+      <main className="px-6 md:px-10 lg:px-20 pb-16">
+        {/* FEATURES */}
+        <section className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-gradient-to-br from-white/3 to-white/2 p-6 rounded-xl border border-white/6 hover:shadow-lg transform hover:-translate-y-1 transition">
+            <h4 className="text-xl font-semibold mb-2">Twórz profil</h4>
+            <p className="text-gray-300 text-sm">
+              Rejestruj konto, synchronizuj profil z Auth0 i zarządzaj swoją
+              kolekcją albumów.
+            </p>
+          </div>
+          <div className="bg-gradient-to-br from-white/3 to-white/2 p-6 rounded-xl border border-white/6 hover:shadow-lg transform hover:-translate-y-1 transition">
+            <h4 className="text-xl font-semibold mb-2">Oceny i recenzje</h4>
+            <p className="text-gray-300 text-sm">
+              Oceń albumy w skali 1–10, pisz recenzje i przeglądaj opinie innych
+              użytkowników.
+            </p>
+          </div>
+          <div className="bg-gradient-to-br from-white/3 to-white/2 p-6 rounded-xl border border-white/6 hover:shadow-lg transform hover:-translate-y-1 transition">
+            <h4 className="text-xl font-semibold mb-2">
+              Inteligentne rekomendacje
+            </h4>
+            <p className="text-gray-300 text-sm">
+              Rekomendacje oparte na ocenach, tagach i podobieństwach między
+              albumami.
+            </p>
+          </div>
+        </section>
+
+        {/* HOW IT WORKS */}
+        <section className="max-w-5xl mx-auto mb-12 text-left bg-white/2 p-6 rounded-xl border border-white/6">
+          <h3 className="text-2xl font-bold mb-4">Jak to działa?</h3>
+          <ol className="list-decimal list-inside text-gray-300 space-y-2">
+            <li>Załóż konto lub zaloguj się (Auth0).</li>
+            <li>Dodawaj przesłuchane albumy do kolekcji i oceniaj je.</li>
+            <li>System analizuje Twoje oceny i proponuje kolejne albumy.</li>
+          </ol>
+        </section>
+
+        {/* POPULAR / PREVIEW ALBUMS */}
+        <section className="max-w-7xl mx-auto mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold">Popularne propozycje</h3>
+            <div className="flex items-center gap-4">
+              <a
+                href="/search"
+                className="text-sm text-gray-300 hover:text-white"
+              >
+                Przeglądaj wszystkie
+              </a>
+              <button
+                onClick={() => refetchPreview()}
+                className="px-3 py-1 text-sm bg-white/6 rounded"
+              >
+                Odśwież
+              </button>
+            </div>
+          </div>
+
+          {previewLoading ? (
+            <div className="text-gray-300">Ładowanie propozycji...</div>
+          ) : previewError ? (
+            <div className="text-red-400">
+              Nie udało się pobrać propozycji.{" "}
+              <button
+                onClick={() => refetchPreview()}
+                className="ml-2 text-blue-400 underline"
+              >
+                Spróbuj ponownie
+              </button>
+            </div>
+          ) : !previewItems || previewItems.length === 0 ? (
+            <div className="text-gray-400">Brak propozycji w bazie.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {previewItems.map((a: any) => (
+                <div
+                  key={a.id ?? a.externalId ?? a.title}
+                  className="transform hover:-translate-y-1 transition"
+                >
+                  <AlbumCard
+                    album={{
+                      id: a.id,
+                      title: a.title ?? a.Title ?? "",
+                      artist: a.artist ?? a.Artist ?? "",
+                      coverUrl: a.coverUrl ?? a.CoverUrl ?? null,
+                      releaseDate: a.releaseDate ?? a.ReleaseDate ?? null,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* QUICK BENEFITS */}
+        <section className="max-w-7xl mx-auto mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white/3 p-6 rounded-xl border border-white/8">
+            <h4 className="text-xl font-semibold mb-2">Dlaczego TuneRate?</h4>
+            <ul className="text-gray-300 text-sm list-disc list-inside space-y-1">
+              <li>Łatwe zarządzanie kolekcją</li>
+              <li>Szczegółowe strony albumów z listą utworów</li>
+              <li>Rekomendacje dopasowane do gustu</li>
+            </ul>
+          </div>
+
+          {!isAuthenticated && (
+            <div className="bg-white/3 p-6 rounded-xl border border-white/8">
+              <h4 className="text-xl font-semibold mb-2">Szybki start</h4>
+              <p className="text-gray-300 text-sm">
+                Zarejestruj się i dodaj kilka albumów — system szybko zacznie
+                proponować trafne rekomendacje.
+              </p>
+              <div className="mt-4">
+                <button
+                  onClick={() => loginWithRedirect()}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"
+                >
+                  Rozpocznij teraz
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
       </main>
 
       {/* FOOTER */}
-      <footer className="text-gray-500 text-sm text-center py-6">
-        &copy; 2025 TuneRate. Wszystkie prawa zastrzeżone.
+      <footer className="text-gray-400 text-sm text-center py-8 border-t border-white/6">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-20 flex flex-col md:flex-row items-center justify-between gap-3">
+          <div>&copy; 2025 TuneRate. Wszystkie prawa zastrzeżone.</div>
+          <div className="text-gray-500 text-sm space-x-3">
+            <a href="/about" className="text-gray-400 hover:text-white">
+              O nas
+            </a>
+            •
+            <a href="/privacy" className="text-gray-400 hover:text-white">
+              Polityka prywatności
+            </a>
+            •
+            <a href="/contact" className="text-gray-400 hover:text-white">
+              Kontakt
+            </a>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -14,7 +14,6 @@ const DashboardPage: React.FC = () => {
     useAuth0();
   const [token, setToken] = useState<string | null>(null);
 
-  // Added: audience and users sync hook + synced state
   const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
   const { mutate: postUsersSync } = usePostApiUsersSync({
     request: token
@@ -29,7 +28,6 @@ const DashboardPage: React.FC = () => {
       setToken(null);
       return;
     }
-    // request token with audience and scope like on LandingPage
     getAccessTokenSilently({
       authorizationParams: {
         audience: audience,
@@ -55,7 +53,6 @@ const DashboardPage: React.FC = () => {
     };
   }, [isAuthenticated, getAccessTokenSilently, audience]);
 
-  // effect to run user sync once we have token (same logic as LandingPage)
   useEffect(() => {
     if (!isAuthenticated || !token || synced) return;
 
@@ -68,7 +65,6 @@ const DashboardPage: React.FC = () => {
         console.error("❌ User sync failed:", err);
         setSynced(true);
       },
-      // Note: Orval passes meta through to axiosInstance -> options
     });
   }, [isAuthenticated, token, synced, postUsersSync]);
 
@@ -112,8 +108,6 @@ const DashboardPage: React.FC = () => {
     (user.sub?.startsWith?.("auth0|") ||
       user?.identities?.[0]?.provider === "auth0");
 
-  // prefer backend-synced nickname (backend saves Username into Nickname),
-  // then Auth0 `username`, then `nickname` from Auth0 profile, then email
   const displayName = isDbUser
     ? localUser?.nickname ?? user?.username ?? user?.nickname ?? user?.email
     : user?.name ?? user?.email;
@@ -143,8 +137,6 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  // === RECOMMENDATIONS ===
-  // Bezpiecznie wyciągamy tablicę rekomendacji (może być undefined)
   const recList = Array.isArray(recommendations?.recommendations)
     ? recommendations!.recommendations
     : [];

@@ -187,6 +187,92 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(mutationOptions, queryClient);
     }
     
+export const getApiAlbumsPreview = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Albums/preview`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiAlbumsPreviewQueryKey = () => {
+    return [
+    `/api/Albums/preview`
+    ] as const;
+    }
+
+    
+export const getGetApiAlbumsPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAlbumsPreviewQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAlbumsPreview>>> = ({ signal }) => getApiAlbumsPreview(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiAlbumsPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAlbumsPreview>>>
+export type GetApiAlbumsPreviewQueryError = ErrorType<unknown>
+
+
+export function useGetApiAlbumsPreview<TData = Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiAlbumsPreview>>,
+          TError,
+          Awaited<ReturnType<typeof getApiAlbumsPreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiAlbumsPreview<TData = Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiAlbumsPreview>>,
+          TError,
+          Awaited<ReturnType<typeof getApiAlbumsPreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiAlbumsPreview<TData = Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiAlbumsPreview<TData = Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAlbumsPreview>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiAlbumsPreviewQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
 export const getApiAlbumsAll = (
     
  options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
@@ -1351,6 +1437,92 @@ export function useGetApiUsersByAuth0idAuth0Id<TData = Awaited<ReturnType<typeof
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetApiUsersByAuth0idAuth0IdQueryOptions(auth0Id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getApiUsersGetAuth0User = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Users/getAuth0User`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiUsersGetAuth0UserQueryKey = () => {
+    return [
+    `/api/Users/getAuth0User`
+    ] as const;
+    }
+
+    
+export const getGetApiUsersGetAuth0UserQueryOptions = <TData = Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiUsersGetAuth0UserQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>> = ({ signal }) => getApiUsersGetAuth0User(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiUsersGetAuth0UserQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>>
+export type GetApiUsersGetAuth0UserQueryError = ErrorType<unknown>
+
+
+export function useGetApiUsersGetAuth0User<TData = Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiUsersGetAuth0User>>,
+          TError,
+          Awaited<ReturnType<typeof getApiUsersGetAuth0User>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiUsersGetAuth0User<TData = Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiUsersGetAuth0User>>,
+          TError,
+          Awaited<ReturnType<typeof getApiUsersGetAuth0User>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiUsersGetAuth0User<TData = Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiUsersGetAuth0User<TData = Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUsersGetAuth0User>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiUsersGetAuth0UserQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

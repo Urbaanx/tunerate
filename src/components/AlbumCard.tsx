@@ -20,26 +20,26 @@ interface AlbumCardProps {
 
 const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
   const navigate = useNavigate();
-  const { isAuthenticated, loginWithRedirect } = useAuth0();
+  const { isAuthenticated } = useAuth0(); // don't redirect here
 
   const createAlbumMutation = usePostApiAlbums();
 
   const handleCardClick = async () => {
-    if (!isAuthenticated) {
-      await loginWithRedirect();
-      return;
-    }
-
     try {
-
-      // 🔹 Jeśli album już istnieje w bazie → przejdź bezpośrednio
+      // jeśli mamy db id -> idziemy prosto
       if (album.id) {
         navigate(`/album/${album.id}`);
         return;
       }
 
-      // 🔹 Jeśli pochodzi z MusicBrainz → utwórz w bazie
-      // treat the mutation result as any and handle possible shapes (response.data.id or response.id)
+      // anonimowy użytkownik: podgląd — nie wywołujemy chronionego endpointu
+      if (!isAuthenticated) {
+        const previewId = album.externalId ?? encodeURIComponent(album.title);
+        navigate(`/album/${previewId}`);
+        return;
+      }
+
+      // zalogowany użytkownik: wywołaj chroniony endpoint, utwórz w DB i przejdź
       const response = (await createAlbumMutation.mutateAsync({
         data: {
           title: album.title,
@@ -55,7 +55,10 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
       if (newAlbumId) {
         navigate(`/album/${newAlbumId}`);
       } else {
-        console.warn("Created album id not found in mutation response:", response);
+        console.warn(
+          "Created album id not found in mutation response:",
+          response
+        );
         alert("Utworzono album, ale nie można było otworzyć strony albumu.");
       }
     } catch (err) {
