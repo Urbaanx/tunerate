@@ -34,6 +34,8 @@ public class Program
             options.AddPolicy("admin", policy => policy.Requirements.Add(new HasScopeRequirement("admin", domain)));
         });
         builder.Services.AddScoped<MusicBrainzService>();
+        builder.Services.AddScoped<DeezerPreviewService>();
+        builder.Services.AddMemoryCache();
         builder.Services.AddControllers();
         builder.Services.AddSwaggerGen(c =>
         {

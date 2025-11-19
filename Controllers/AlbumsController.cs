@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using tunerate_api.Data;
 using tunerate_api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -12,16 +12,21 @@ namespace tunerate_api.Controllers
     public class AlbumsController : ControllerBase
     {
         private readonly MusicBrainzService _musicBrainzService;
+        private readonly DeezerPreviewService _deezerPreviewService;
+        private readonly IMemoryCache _cache;
         private readonly AppDbContext _context;
 
-        public AlbumsController(MusicBrainzService musicBrainzService, AppDbContext context)
+        public AlbumsController(MusicBrainzService musicBrainzService, AppDbContext context, DeezerPreviewService deezerPreviewService,
+            IMemoryCache cache)
         {
             _musicBrainzService = musicBrainzService;
             _context = context;
+            _deezerPreviewService = deezerPreviewService;
+            _cache = cache;
         }
         
-                // 🆕 GET /api/albums — zwraca wszystkie albumy z lokalnej bazy
         [HttpGet]
+        //[Authorize]
         public async Task<IActionResult> GetAllAlbums(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -29,49 +34,61 @@ namespace tunerate_api.Controllers
             [FromQuery] string? genre = null,
             [FromQuery] string? artist = null,
             [FromQuery] int? year = null,
-            [FromQuery] string? popularity = null)
+            [FromQuery] string? popularity = null,
+            [FromQuery] string? query = null)
         {
             if (page <= 0) page = 1;
             if (pageSize <= 0) pageSize = 20;
 
-            var query = _context.Albums
+            var albumsQuery = _context.Albums
                 .Include(a => a.Artist)
                 .Include(a => a.Reviews)
                 .Include(a => a.AlbumTags).ThenInclude(at => at.Tag)
                 .AsQueryable();
 
-            // 🔹 Filtrowanie
+            // 🔹 Wyszukiwanie po tytule lub nazwie artysty (niezależnie od paginacji)
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var lowered = query.Trim().ToLower();
+                albumsQuery = albumsQuery.Where(a =>
+                    a.Title.ToLower().Contains(lowered) ||
+                    a.Artist.Name.ToLower().Contains(lowered));
+            }
+
+            // 🔹 Filtry
             if (!string.IsNullOrWhiteSpace(artist))
-                query = query.Where(a => EF.Functions.ILike(a.Artist.Name, $"%{artist}%"));
+                albumsQuery = albumsQuery.Where(a =>
+                    EF.Functions.ILike(a.Artist.Name, $"%{artist}%"));
 
             if (year.HasValue)
-                query = query.Where(a => a.ReleaseDate.Year == year.Value);
+                albumsQuery = albumsQuery.Where(a => a.ReleaseDate.Year == year.Value);
 
             if (!string.IsNullOrWhiteSpace(genre))
-                query = query.Where(a => a.AlbumTags.Any(t => EF.Functions.ILike(t.Tag.Name, $"%{genre}%")));
+                albumsQuery = albumsQuery.Where(a =>
+                    a.AlbumTags.Any(t => EF.Functions.ILike(t.Tag.Name, $"%{genre}%")));
 
             // 🔹 Sortowanie
-            query = sort switch
+            albumsQuery = sort switch
             {
-                "title_desc" => query.OrderByDescending(a => a.Title),
-                "artist_asc" => query.OrderBy(a => a.Artist.Name),
-                "artist_desc" => query.OrderByDescending(a => a.Artist.Name),
-                "date_desc" => query.OrderByDescending(a => a.ReleaseDate),
-                "date_asc" => query.OrderBy(a => a.ReleaseDate),
-                "rating_desc" => query.OrderByDescending(a => a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : 0),
-                "rating_asc" => query.OrderBy(a => a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : 0),
-                _ => query.OrderBy(a => a.Title)
+                "title_desc" => albumsQuery.OrderByDescending(a => a.Title),
+                "artist_asc" => albumsQuery.OrderBy(a => a.Artist.Name),
+                "artist_desc" => albumsQuery.OrderByDescending(a => a.Artist.Name),
+                "date_desc" => albumsQuery.OrderByDescending(a => a.ReleaseDate),
+                "date_asc" => albumsQuery.OrderBy(a => a.ReleaseDate),
+                "rating_desc" => albumsQuery.OrderByDescending(a => a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : 0),
+                "rating_asc" => albumsQuery.OrderBy(a => a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : 0),
+                _ => albumsQuery.OrderBy(a => a.Title)
             };
 
             // 🔹 Popularność = liczba recenzji
             if (popularity == "most_reviewed")
-                query = query.OrderByDescending(a => a.Reviews.Count);
+                albumsQuery = albumsQuery.OrderByDescending(a => a.Reviews.Count);
             else if (popularity == "least_reviewed")
-                query = query.OrderBy(a => a.Reviews.Count);
+                albumsQuery = albumsQuery.OrderBy(a => a.Reviews.Count);
 
-            var totalCount = await query.CountAsync();
-
-            var albums = await query
+            // 🔹 Paginacja
+            var totalCount = await albumsQuery.CountAsync();
+            var albums = await albumsQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(a => new
@@ -94,13 +111,44 @@ namespace tunerate_api.Controllers
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                Source = "local"
             });
         }
-
+        
+        [HttpGet("preview")]
+        public async Task<IActionResult> GetLandingPagePreviewAlbums()
+        {
+            // Pobierz 3 losowe albumy z bazy (wymaga PostgreSQL / Npgsql - EF.Functions.Random())
+            var albums = await _context.Albums
+                .Include(a => a.Artist)
+                .Include(a => a.AlbumTags).ThenInclude(at => at.Tag)
+                .Include(a => a.Reviews)
+                .OrderBy(a => EF.Functions.Random())
+                .Take(3)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Title,
+                    Artist = a.Artist.Name,
+                    a.CoverUrl,
+                    a.ReleaseDate,
+                    AverageRating = a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : (double?)null,
+                    Tags = a.AlbumTags.Select(at => at.Tag.Name).ToList(),
+                    ReviewsCount = a.Reviews.Count
+                })
+                .ToListAsync();
+        
+            return Ok(new
+            {
+                Items = albums,
+                Count = albums.Count,
+                Source = "local_preview"
+            });
+        }
+        
         
         [HttpGet("all")]
-        //[Authorize]
         public async Task<IActionResult> GetAllAlbumsFlat()
         {
             var albums = await _context.Albums
@@ -115,9 +163,9 @@ namespace tunerate_api.Controllers
 
             return Ok(albums);
         }
-
+        
         [HttpGet("search")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> Search(
             [FromQuery] string query,
             [FromQuery] int page = 1,
@@ -131,7 +179,7 @@ namespace tunerate_api.Controllers
             if (pageSize <= 0) pageSize = 10;
 
             var albumsFromApi = await _musicBrainzService.SearchAlbumsAsync(query, page, pageSize, sort);
-            
+
             return Ok(new
             {
                 Items = albumsFromApi.Items,
@@ -142,26 +190,31 @@ namespace tunerate_api.Controllers
                 Source = "musicbrainz"
             });
         }
-        
-        
-        // 🆕 POST /api/albums — tworzy album w bazie, jeśli jeszcze nie istnieje
+
+        // POST /api/albums
         [HttpPost]
-        //[Authorize]
         public async Task<IActionResult> CreateAlbum([FromBody] AlbumDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Artist))
                 return BadRequest("Tytuł i wykonawca są wymagane.");
 
-            // 🔹 Sprawdź, czy album już istnieje (po externalId lub tytule + artyście)
             var existingAlbum = await _context.Albums
+                .Include(a => a.Artist)
                 .FirstOrDefaultAsync(a =>
                     (!string.IsNullOrEmpty(dto.ExternalId) && a.ExternalId == dto.ExternalId) ||
                     (a.Title == dto.Title && a.Artist.Name == dto.Artist));
 
             if (existingAlbum != null)
-                return Ok(existingAlbum);
+                return Ok(new
+                {
+                    existingAlbum.Id,
+                    existingAlbum.Title,
+                    Artist = existingAlbum.Artist.Name,
+                    existingAlbum.CoverUrl,
+                    existingAlbum.ReleaseDate,
+                    existingAlbum.ExternalId
+                });
 
-            // 🔹 Znajdź lub utwórz artystę
             var artist = await _context.Artists.FirstOrDefaultAsync(a => a.Name == dto.Artist);
             if (artist == null)
             {
@@ -170,7 +223,6 @@ namespace tunerate_api.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            // 🔹 Utwórz nowy album
             var album = new Album
             {
                 Title = dto.Title,
@@ -220,19 +272,43 @@ namespace tunerate_api.Controllers
             });
         }
 
-
         [HttpGet("{id}")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> GetAlbumDetails(Guid id)
         {
             var album = await _context.Albums
                 .Include(a => a.Artist)
                 .Include(a => a.Reviews)
-                    .ThenInclude(r => r.User)
+                .ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (album == null)
                 return NotFound("Nie znaleziono albumu.");
+
+            string cacheKey = $"album_details_{id}";
+
+            if (_cache.TryGetValue(cacheKey, out var cached))
+            {
+                return Ok(cached);
+            }
+
+            // 🆕 Pobierz tracklistę z MusicBrainz
+            List<TrackDto> tracks = new();
+            int totalDurationMs = 0;
+
+            if (!string.IsNullOrEmpty(album.ExternalId))
+            {
+                tracks = await _musicBrainzService.GetAlbumTracksAsync(album.ExternalId);
+                totalDurationMs = tracks.Sum(t => t.DurationMs);
+
+                // pobierz previewy równolegle
+                var previewTasks = tracks.Select(t => _deezerPreviewService.GetPreviewUrlAsync(album.Artist.Name, t.Title)).ToArray();
+                var previews = await Task.WhenAll(previewTasks);
+                for (int i = 0; i < tracks.Count; i++)
+                {
+                    tracks[i].PreviewUrl = previews[i];
+                }
+            }
 
             var avgRating = album.Reviews.Any()
                 ? album.Reviews.Average(r => r.Score)
@@ -246,6 +322,8 @@ namespace tunerate_api.Controllers
                 album.CoverUrl,
                 album.ReleaseDate,
                 AverageRating = avgRating,
+                Tracks = tracks,
+                TotalDurationMs = totalDurationMs,
                 Reviews = album.Reviews
                     .OrderByDescending(r => r.CreatedAt)
                     .Select(r => new
@@ -259,6 +337,13 @@ namespace tunerate_api.Controllers
                         r.CreatedAt
                     })
             };
+
+            // ustaw cache (np. 30 minut)
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+            };
+            _cache.Set(cacheKey, result, cacheOptions);
 
             return Ok(result);
         }
