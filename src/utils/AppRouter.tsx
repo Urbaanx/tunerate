@@ -11,6 +11,12 @@ import AuthGuard from "../components/AuthGuard";
 import AboutPage from "../pages/AboutPage";
 import PrivacyPage from "../pages/PrivacyPage";
 import ContactPage from "../pages/ContactPage";
+import FriendsPage from "../pages/FriendsPage";
+import FriendRequestsPage from "../pages/FriendRequestsPage";
+import FriendProfilePage from "../pages/FriendProfilePage";
+import ChatPage from "../pages/ChatPage";
+import NotificationsPage from "../pages/NotificationsPage";
+import FriendsSearchPage from "../pages/FriendsSearchPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,33 +40,91 @@ const AppRouter: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Navbar />
-        <Routes>
-          {/* public routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="album/:id" element={<AlbumDetailsPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/contact" element={<ContactPage />} />
+        <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-900 to-black text-white">
+          <Routes>
+            {/* public routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="album/:id" element={<AlbumDetailsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
 
-          {/* protected routes*/}
-          <Route
-            path="/collection"
-            element={
-              <AuthGuard>
-                <CollectionPage />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <AuthGuard>
-                <DashboardPage />
-              </AuthGuard>
-            }
-          />
-        </Routes>
+            {/* protected routes */}
+            <Route
+              path="/collection"
+              element={
+                <AuthGuard>
+                  <CollectionPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <AuthGuard>
+                  <DashboardPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friends"
+              element={
+                <AuthGuard>
+                  <FriendsPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friend-requests"
+              element={
+                <AuthGuard>
+                  <FriendRequestsPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friend/:id"
+              element={
+                <AuthGuard>
+                  <FriendProfilePage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <AuthGuard>
+                  <ChatPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/chat/:id"
+              element={
+                <AuthGuard>
+                  <ChatPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <AuthGuard>
+                  <NotificationsPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friends/search"
+              element={
+                <AuthGuard>
+                  <FriendsSearchPage />
+                </AuthGuard>
+              }
+            />
+          </Routes>
+        </div>
       </Router>
     </QueryClientProvider>
   );

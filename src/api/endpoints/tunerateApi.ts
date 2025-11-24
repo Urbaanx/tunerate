@@ -27,10 +27,13 @@ import type {
   AlbumDto,
   GetApiAlbumsParams,
   GetApiAlbumsSearchParams,
+  GetApiChatHistoryOtherUserIdParams,
   GetApiRecommendationsAlbumAlbumIdParams,
   GetApiRecommendationsUserIdParams,
   GetApiReviewsAlbumIdParams,
-  ReviewDto
+  GetApiSocialSearchParams,
+  ReviewDto,
+  SendMessageDto
 } from './tunerateApi.schemas';
 
 import { axiosInstance } from '../axiosInstance';
@@ -532,6 +535,303 @@ export function useGetApiAlbumsId<TData = Awaited<ReturnType<typeof getApiAlbums
 
 
 
+export const getApiChatHistoryOtherUserId = (
+    otherUserId: string,
+    params?: GetApiChatHistoryOtherUserIdParams,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Chat/history/${otherUserId}`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiChatHistoryOtherUserIdQueryKey = (otherUserId?: string,
+    params?: GetApiChatHistoryOtherUserIdParams,) => {
+    return [
+    `/api/Chat/history/${otherUserId}`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getGetApiChatHistoryOtherUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError = ErrorType<unknown>>(otherUserId: string,
+    params?: GetApiChatHistoryOtherUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiChatHistoryOtherUserIdQueryKey(otherUserId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>> = ({ signal }) => getApiChatHistoryOtherUserId(otherUserId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(otherUserId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiChatHistoryOtherUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>>
+export type GetApiChatHistoryOtherUserIdQueryError = ErrorType<unknown>
+
+
+export function useGetApiChatHistoryOtherUserId<TData = Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError = ErrorType<unknown>>(
+ otherUserId: string,
+    params: undefined |  GetApiChatHistoryOtherUserIdParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiChatHistoryOtherUserId<TData = Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError = ErrorType<unknown>>(
+ otherUserId: string,
+    params?: GetApiChatHistoryOtherUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiChatHistoryOtherUserId<TData = Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError = ErrorType<unknown>>(
+ otherUserId: string,
+    params?: GetApiChatHistoryOtherUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiChatHistoryOtherUserId<TData = Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError = ErrorType<unknown>>(
+ otherUserId: string,
+    params?: GetApiChatHistoryOtherUserIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatHistoryOtherUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiChatHistoryOtherUserIdQueryOptions(otherUserId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getApiChatUnreadCounts = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Chat/unread-counts`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiChatUnreadCountsQueryKey = () => {
+    return [
+    `/api/Chat/unread-counts`
+    ] as const;
+    }
+
+    
+export const getGetApiChatUnreadCountsQueryOptions = <TData = Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiChatUnreadCountsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiChatUnreadCounts>>> = ({ signal }) => getApiChatUnreadCounts(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiChatUnreadCountsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiChatUnreadCounts>>>
+export type GetApiChatUnreadCountsQueryError = ErrorType<unknown>
+
+
+export function useGetApiChatUnreadCounts<TData = Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiChatUnreadCounts>>,
+          TError,
+          Awaited<ReturnType<typeof getApiChatUnreadCounts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiChatUnreadCounts<TData = Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiChatUnreadCounts>>,
+          TError,
+          Awaited<ReturnType<typeof getApiChatUnreadCounts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiChatUnreadCounts<TData = Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiChatUnreadCounts<TData = Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiChatUnreadCounts>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiChatUnreadCountsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const postApiChatMarkReadOtherUserId = (
+    otherUserId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Chat/mark-read/${otherUserId}`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiChatMarkReadOtherUserIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiChatMarkReadOtherUserId>>, TError,{otherUserId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiChatMarkReadOtherUserId>>, TError,{otherUserId: string}, TContext> => {
+
+const mutationKey = ['postApiChatMarkReadOtherUserId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiChatMarkReadOtherUserId>>, {otherUserId: string}> = (props) => {
+          const {otherUserId} = props ?? {};
+
+          return  postApiChatMarkReadOtherUserId(otherUserId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiChatMarkReadOtherUserIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiChatMarkReadOtherUserId>>>
+    
+    export type PostApiChatMarkReadOtherUserIdMutationError = ErrorType<unknown>
+
+    export const usePostApiChatMarkReadOtherUserId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiChatMarkReadOtherUserId>>, TError,{otherUserId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiChatMarkReadOtherUserId>>,
+        TError,
+        {otherUserId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiChatMarkReadOtherUserIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const postApiChatSendToUserId = (
+    toUserId: string,
+    sendMessageDto: BodyType<SendMessageDto>,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Chat/send/${toUserId}`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: sendMessageDto, signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiChatSendToUserIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiChatSendToUserId>>, TError,{toUserId: string;data: BodyType<SendMessageDto>}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiChatSendToUserId>>, TError,{toUserId: string;data: BodyType<SendMessageDto>}, TContext> => {
+
+const mutationKey = ['postApiChatSendToUserId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiChatSendToUserId>>, {toUserId: string;data: BodyType<SendMessageDto>}> = (props) => {
+          const {toUserId,data} = props ?? {};
+
+          return  postApiChatSendToUserId(toUserId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiChatSendToUserIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiChatSendToUserId>>>
+    export type PostApiChatSendToUserIdMutationBody = BodyType<SendMessageDto>
+    export type PostApiChatSendToUserIdMutationError = ErrorType<unknown>
+
+    export const usePostApiChatSendToUserId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiChatSendToUserId>>, TError,{toUserId: string;data: BodyType<SendMessageDto>}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiChatSendToUserId>>,
+        TError,
+        {toUserId: string;data: BodyType<SendMessageDto>},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiChatSendToUserIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 export const getApiRecommendationsUserId = (
     userId: string,
     params?: GetApiRecommendationsUserIdParams,
@@ -1075,6 +1375,921 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(mutationOptions, queryClient);
     }
     
+export const getApiSocialRequestsOutgoing = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/requests/outgoing`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiSocialRequestsOutgoingQueryKey = () => {
+    return [
+    `/api/Social/requests/outgoing`
+    ] as const;
+    }
+
+    
+export const getGetApiSocialRequestsOutgoingQueryOptions = <TData = Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSocialRequestsOutgoingQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>> = ({ signal }) => getApiSocialRequestsOutgoing(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiSocialRequestsOutgoingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>>
+export type GetApiSocialRequestsOutgoingQueryError = ErrorType<unknown>
+
+
+export function useGetApiSocialRequestsOutgoing<TData = Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialRequestsOutgoing<TData = Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialRequestsOutgoing<TData = Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiSocialRequestsOutgoing<TData = Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequestsOutgoing>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiSocialRequestsOutgoingQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const postApiSocialFriendsRequestToUserId = (
+    toUserId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/friends/request/${toUserId}`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiSocialFriendsRequestToUserIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsRequestToUserId>>, TError,{toUserId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsRequestToUserId>>, TError,{toUserId: string}, TContext> => {
+
+const mutationKey = ['postApiSocialFriendsRequestToUserId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiSocialFriendsRequestToUserId>>, {toUserId: string}> = (props) => {
+          const {toUserId} = props ?? {};
+
+          return  postApiSocialFriendsRequestToUserId(toUserId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiSocialFriendsRequestToUserIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiSocialFriendsRequestToUserId>>>
+    
+    export type PostApiSocialFriendsRequestToUserIdMutationError = ErrorType<unknown>
+
+    export const usePostApiSocialFriendsRequestToUserId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsRequestToUserId>>, TError,{toUserId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiSocialFriendsRequestToUserId>>,
+        TError,
+        {toUserId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiSocialFriendsRequestToUserIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const postApiSocialFriendsAcceptFriendshipId = (
+    friendshipId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/friends/accept/${friendshipId}`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiSocialFriendsAcceptFriendshipIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsAcceptFriendshipId>>, TError,{friendshipId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsAcceptFriendshipId>>, TError,{friendshipId: string}, TContext> => {
+
+const mutationKey = ['postApiSocialFriendsAcceptFriendshipId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiSocialFriendsAcceptFriendshipId>>, {friendshipId: string}> = (props) => {
+          const {friendshipId} = props ?? {};
+
+          return  postApiSocialFriendsAcceptFriendshipId(friendshipId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiSocialFriendsAcceptFriendshipIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiSocialFriendsAcceptFriendshipId>>>
+    
+    export type PostApiSocialFriendsAcceptFriendshipIdMutationError = ErrorType<unknown>
+
+    export const usePostApiSocialFriendsAcceptFriendshipId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsAcceptFriendshipId>>, TError,{friendshipId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiSocialFriendsAcceptFriendshipId>>,
+        TError,
+        {friendshipId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiSocialFriendsAcceptFriendshipIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const postApiSocialFriendsDeclineFriendshipId = (
+    friendshipId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/friends/decline/${friendshipId}`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiSocialFriendsDeclineFriendshipIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsDeclineFriendshipId>>, TError,{friendshipId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsDeclineFriendshipId>>, TError,{friendshipId: string}, TContext> => {
+
+const mutationKey = ['postApiSocialFriendsDeclineFriendshipId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiSocialFriendsDeclineFriendshipId>>, {friendshipId: string}> = (props) => {
+          const {friendshipId} = props ?? {};
+
+          return  postApiSocialFriendsDeclineFriendshipId(friendshipId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiSocialFriendsDeclineFriendshipIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiSocialFriendsDeclineFriendshipId>>>
+    
+    export type PostApiSocialFriendsDeclineFriendshipIdMutationError = ErrorType<unknown>
+
+    export const usePostApiSocialFriendsDeclineFriendshipId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialFriendsDeclineFriendshipId>>, TError,{friendshipId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiSocialFriendsDeclineFriendshipId>>,
+        TError,
+        {friendshipId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiSocialFriendsDeclineFriendshipIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const getApiSocialFriends = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/friends`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiSocialFriendsQueryKey = () => {
+    return [
+    `/api/Social/friends`
+    ] as const;
+    }
+
+    
+export const getGetApiSocialFriendsQueryOptions = <TData = Awaited<ReturnType<typeof getApiSocialFriends>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialFriends>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSocialFriendsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSocialFriends>>> = ({ signal }) => getApiSocialFriends(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSocialFriends>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiSocialFriendsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSocialFriends>>>
+export type GetApiSocialFriendsQueryError = ErrorType<unknown>
+
+
+export function useGetApiSocialFriends<TData = Awaited<ReturnType<typeof getApiSocialFriends>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialFriends>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialFriends>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialFriends>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialFriends<TData = Awaited<ReturnType<typeof getApiSocialFriends>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialFriends>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialFriends>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialFriends>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialFriends<TData = Awaited<ReturnType<typeof getApiSocialFriends>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialFriends>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiSocialFriends<TData = Awaited<ReturnType<typeof getApiSocialFriends>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialFriends>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiSocialFriendsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getApiSocialRequests = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/requests`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiSocialRequestsQueryKey = () => {
+    return [
+    `/api/Social/requests`
+    ] as const;
+    }
+
+    
+export const getGetApiSocialRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getApiSocialRequests>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequests>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSocialRequestsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSocialRequests>>> = ({ signal }) => getApiSocialRequests(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequests>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiSocialRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSocialRequests>>>
+export type GetApiSocialRequestsQueryError = ErrorType<unknown>
+
+
+export function useGetApiSocialRequests<TData = Awaited<ReturnType<typeof getApiSocialRequests>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequests>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialRequests<TData = Awaited<ReturnType<typeof getApiSocialRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequests>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialRequests<TData = Awaited<ReturnType<typeof getApiSocialRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequests>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiSocialRequests<TData = Awaited<ReturnType<typeof getApiSocialRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialRequests>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiSocialRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const postApiSocialShareToUserIdAlbumId = (
+    toUserId: string,
+    albumId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/share/${toUserId}/${albumId}`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiSocialShareToUserIdAlbumIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialShareToUserIdAlbumId>>, TError,{toUserId: string;albumId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiSocialShareToUserIdAlbumId>>, TError,{toUserId: string;albumId: string}, TContext> => {
+
+const mutationKey = ['postApiSocialShareToUserIdAlbumId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiSocialShareToUserIdAlbumId>>, {toUserId: string;albumId: string}> = (props) => {
+          const {toUserId,albumId} = props ?? {};
+
+          return  postApiSocialShareToUserIdAlbumId(toUserId,albumId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiSocialShareToUserIdAlbumIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiSocialShareToUserIdAlbumId>>>
+    
+    export type PostApiSocialShareToUserIdAlbumIdMutationError = ErrorType<unknown>
+
+    export const usePostApiSocialShareToUserIdAlbumId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialShareToUserIdAlbumId>>, TError,{toUserId: string;albumId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiSocialShareToUserIdAlbumId>>,
+        TError,
+        {toUserId: string;albumId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiSocialShareToUserIdAlbumIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const getApiSocialShares = (
+    
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/shares`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiSocialSharesQueryKey = () => {
+    return [
+    `/api/Social/shares`
+    ] as const;
+    }
+
+    
+export const getGetApiSocialSharesQueryOptions = <TData = Awaited<ReturnType<typeof getApiSocialShares>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialShares>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSocialSharesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSocialShares>>> = ({ signal }) => getApiSocialShares(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSocialShares>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiSocialSharesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSocialShares>>>
+export type GetApiSocialSharesQueryError = ErrorType<unknown>
+
+
+export function useGetApiSocialShares<TData = Awaited<ReturnType<typeof getApiSocialShares>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialShares>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialShares>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialShares>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialShares<TData = Awaited<ReturnType<typeof getApiSocialShares>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialShares>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialShares>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialShares>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialShares<TData = Awaited<ReturnType<typeof getApiSocialShares>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialShares>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiSocialShares<TData = Awaited<ReturnType<typeof getApiSocialShares>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialShares>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiSocialSharesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const postApiSocialSharesMarkReadShareId = (
+    shareId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/shares/mark-read/${shareId}`, method: 'POST', signal
+    },
+      options);
+    }
+  
+
+
+export const getPostApiSocialSharesMarkReadShareIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialSharesMarkReadShareId>>, TError,{shareId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiSocialSharesMarkReadShareId>>, TError,{shareId: string}, TContext> => {
+
+const mutationKey = ['postApiSocialSharesMarkReadShareId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiSocialSharesMarkReadShareId>>, {shareId: string}> = (props) => {
+          const {shareId} = props ?? {};
+
+          return  postApiSocialSharesMarkReadShareId(shareId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiSocialSharesMarkReadShareIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiSocialSharesMarkReadShareId>>>
+    
+    export type PostApiSocialSharesMarkReadShareIdMutationError = ErrorType<unknown>
+
+    export const usePostApiSocialSharesMarkReadShareId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSocialSharesMarkReadShareId>>, TError,{shareId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiSocialSharesMarkReadShareId>>,
+        TError,
+        {shareId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiSocialSharesMarkReadShareIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const getApiSocialProfileUserId = (
+    userId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/profile/${userId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiSocialProfileUserIdQueryKey = (userId?: string,) => {
+    return [
+    `/api/Social/profile/${userId}`
+    ] as const;
+    }
+
+    
+export const getGetApiSocialProfileUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError = ErrorType<unknown>>(userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSocialProfileUserIdQueryKey(userId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSocialProfileUserId>>> = ({ signal }) => getApiSocialProfileUserId(userId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiSocialProfileUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSocialProfileUserId>>>
+export type GetApiSocialProfileUserIdQueryError = ErrorType<unknown>
+
+
+export function useGetApiSocialProfileUserId<TData = Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialProfileUserId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialProfileUserId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialProfileUserId<TData = Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialProfileUserId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialProfileUserId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialProfileUserId<TData = Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiSocialProfileUserId<TData = Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialProfileUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiSocialProfileUserIdQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getApiSocialSearch = (
+    params?: GetApiSocialSearchParams,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/search`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiSocialSearchQueryKey = (params?: GetApiSocialSearchParams,) => {
+    return [
+    `/api/Social/search`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getGetApiSocialSearchQueryOptions = <TData = Awaited<ReturnType<typeof getApiSocialSearch>>, TError = ErrorType<unknown>>(params?: GetApiSocialSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialSearch>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSocialSearchQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSocialSearch>>> = ({ signal }) => getApiSocialSearch(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSocialSearch>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiSocialSearchQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSocialSearch>>>
+export type GetApiSocialSearchQueryError = ErrorType<unknown>
+
+
+export function useGetApiSocialSearch<TData = Awaited<ReturnType<typeof getApiSocialSearch>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetApiSocialSearchParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialSearch>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialSearch>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialSearch>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialSearch<TData = Awaited<ReturnType<typeof getApiSocialSearch>>, TError = ErrorType<unknown>>(
+ params?: GetApiSocialSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialSearch>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiSocialSearch>>,
+          TError,
+          Awaited<ReturnType<typeof getApiSocialSearch>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiSocialSearch<TData = Awaited<ReturnType<typeof getApiSocialSearch>>, TError = ErrorType<unknown>>(
+ params?: GetApiSocialSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialSearch>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiSocialSearch<TData = Awaited<ReturnType<typeof getApiSocialSearch>>, TError = ErrorType<unknown>>(
+ params?: GetApiSocialSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSocialSearch>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiSocialSearchQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const deleteApiSocialFriendsFriendId = (
+    friendId: string,
+ options?: SecondParameter<typeof axiosInstance>,) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/friends/${friendId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiSocialFriendsFriendIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiSocialFriendsFriendId>>, TError,{friendId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiSocialFriendsFriendId>>, TError,{friendId: string}, TContext> => {
+
+const mutationKey = ['deleteApiSocialFriendsFriendId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiSocialFriendsFriendId>>, {friendId: string}> = (props) => {
+          const {friendId} = props ?? {};
+
+          return  deleteApiSocialFriendsFriendId(friendId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiSocialFriendsFriendIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiSocialFriendsFriendId>>>
+    
+    export type DeleteApiSocialFriendsFriendIdMutationError = ErrorType<unknown>
+
+    export const useDeleteApiSocialFriendsFriendId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiSocialFriendsFriendId>>, TError,{friendId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiSocialFriendsFriendId>>,
+        TError,
+        {friendId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiSocialFriendsFriendIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
+export const deleteApiSocialRequestsFriendshipId = (
+    friendshipId: string,
+ options?: SecondParameter<typeof axiosInstance>,) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/Social/requests/${friendshipId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiSocialRequestsFriendshipIdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiSocialRequestsFriendshipId>>, TError,{friendshipId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiSocialRequestsFriendshipId>>, TError,{friendshipId: string}, TContext> => {
+
+const mutationKey = ['deleteApiSocialRequestsFriendshipId'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiSocialRequestsFriendshipId>>, {friendshipId: string}> = (props) => {
+          const {friendshipId} = props ?? {};
+
+          return  deleteApiSocialRequestsFriendshipId(friendshipId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiSocialRequestsFriendshipIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiSocialRequestsFriendshipId>>>
+    
+    export type DeleteApiSocialRequestsFriendshipIdMutationError = ErrorType<unknown>
+
+    export const useDeleteApiSocialRequestsFriendshipId = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiSocialRequestsFriendshipId>>, TError,{friendshipId: string}, TContext>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiSocialRequestsFriendshipId>>,
+        TError,
+        {friendshipId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiSocialRequestsFriendshipIdMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
 export const postApiUserAlbums = (
     albumDto: BodyType<AlbumDto>,
  options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
@@ -1276,6 +2491,92 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(mutationOptions, queryClient);
     }
     
+export const getApiUserAlbumsUserId = (
+    userId: string,
+ options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return axiosInstance<void>(
+      {url: `/api/UserAlbums/${userId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetApiUserAlbumsUserIdQueryKey = (userId?: string,) => {
+    return [
+    `/api/UserAlbums/${userId}`
+    ] as const;
+    }
+
+    
+export const getGetApiUserAlbumsUserIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError = ErrorType<unknown>>(userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiUserAlbumsUserIdQueryKey(userId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>> = ({ signal }) => getApiUserAlbumsUserId(userId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiUserAlbumsUserIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>>
+export type GetApiUserAlbumsUserIdQueryError = ErrorType<unknown>
+
+
+export function useGetApiUserAlbumsUserId<TData = Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiUserAlbumsUserId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiUserAlbumsUserId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiUserAlbumsUserId<TData = Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiUserAlbumsUserId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiUserAlbumsUserId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiUserAlbumsUserId<TData = Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetApiUserAlbumsUserId<TData = Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError = ErrorType<unknown>>(
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserAlbumsUserId>>, TError, TData>>, request?: SecondParameter<typeof axiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiUserAlbumsUserIdQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
 export const getApiUsers = (
     
  options?: SecondParameter<typeof axiosInstance>,signal?: AbortSignal

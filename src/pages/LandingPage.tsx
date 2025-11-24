@@ -61,6 +61,15 @@ const LandingPage: React.FC = () => {
     })();
   }, [isAuthenticated, getAccessTokenSilently, user, audience]);
 
+  // <-- DODANE: loguj token przy każdej zmianie accessToken (do testów API)
+  useEffect(() => {
+    if (!accessToken) {
+      console.log("Brak accessToken (niezalogowany lub token usunięty).");
+      return;
+    }
+    console.log("API token (do testów):", accessToken);
+  }, [accessToken]);
+
   useEffect(() => {
     if (!isAuthenticated || !accessToken || synced) return;
 

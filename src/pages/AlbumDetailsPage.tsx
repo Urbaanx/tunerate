@@ -26,6 +26,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "../utils/toast";
+import SendAlbumRecommendationModal from "../components/SendAlbumRecommendationModal";
 
 const AlbumDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +52,8 @@ const AlbumDetailsPage: React.FC = () => {
 
   const [authPromptVisible, setAuthPromptVisible] = useState(false);
   const [authPromptMessage, setAuthPromptMessage] = useState("");
+
+  const [showRecommendModal, setShowRecommendModal] = useState(false);
 
   const formatTrackDuration = (ms: number): string => {
     if (!ms || ms <= 0) return "—";
@@ -356,24 +359,45 @@ const AlbumDetailsPage: React.FC = () => {
               Data wydania: {formatDate(album.releaseDate) || "Nieznana"}
             </p>
 
-            <div className="flex items-center mb-4">
-              <Star className="text-yellow-400 w-5 h-5 mr-1" />
+            <div className="flex items-center mb-4 gap-3">
+              <div>
+                <Star className="text-yellow-400 w-5 h-5 mr-1" />
+              </div>
               <span className="text-lg font-semibold">
                 {album.averageRating ? album.averageRating.toFixed(1) : "—"} /
                 10
               </span>
             </div>
 
-            <button
-              onClick={handleToggleCollection}
-              className={`px-6 py-3 rounded-lg font-medium transition ${
-                isInCollection
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {isInCollection ? "Usuń z kolekcji" : "Dodaj do kolekcji"}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleToggleCollection}
+                className={`px-6 py-3 rounded-lg font-medium transition ${
+                  isInCollection
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {isInCollection ? "Usuń z kolekcji" : "Dodaj do kolekcji"}
+              </button>
+
+              {/* Poleć znajomemu - dostępne, gdy album jest załadowany */}
+              <button
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setAuthPromptMessage(
+                      "Musisz się zalogować, aby polecić album."
+                    );
+                    setAuthPromptVisible(true);
+                    return;
+                  }
+                  setShowRecommendModal(true);
+                }}
+                className="px-4 py-3 rounded-lg font-medium bg-green-600 hover:bg-green-700"
+              >
+                Poleć znajomemu
+              </button>
+            </div>
           </div>
         </div>
 
@@ -628,6 +652,13 @@ const AlbumDetailsPage: React.FC = () => {
               Następna <ChevronRight className="w-4 h-4 ml-1" />
             </button>
           </div>
+        )}
+
+        {showRecommendModal && (
+          <SendAlbumRecommendationModal
+            album={album}
+            onClose={() => setShowRecommendModal(false)}
+          />
         )}
       </div>
     </div>

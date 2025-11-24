@@ -210,6 +210,119 @@
         "x-requiresAuth": false
       }
     },
+    "/api/Chat/history/{otherUserId}": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "parameters": [
+          {
+            "name": "otherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Chat/unread-counts": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Chat/mark-read/{otherUserId}": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "parameters": [
+          {
+            "name": "otherUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Chat/send/{toUserId}": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "parameters": [
+          {
+            "name": "toUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
     "/api/Recommendations/{userId}": {
       "get": {
         "tags": [
@@ -453,6 +566,291 @@
         "x-requiresAuth": false
       }
     },
+    "/api/Social/requests/outgoing": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/friends/request/{toUserId}": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "toUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/friends/accept/{friendshipId}": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "friendshipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/friends/decline/{friendshipId}": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "friendshipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/friends": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/requests": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/share/{toUserId}/{albumId}": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "toUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "albumId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/shares": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/shares/mark-read/{shareId}": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "shareId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/profile/{userId}": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/search": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/friends/{friendId}": {
+      "delete": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "friendId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Social/requests/{friendshipId}": {
+      "delete": {
+        "tags": [
+          "Social"
+        ],
+        "parameters": [
+          {
+            "name": "friendshipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
     "/api/UserAlbums": {
       "post": {
         "tags": [
@@ -504,6 +902,30 @@
         "parameters": [
           {
             "name": "albumId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/UserAlbums/{userId}": {
+      "get": {
+        "tags": [
+          "UserAlbums"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
             "in": "path",
             "required": true,
             "schema": {
@@ -625,6 +1047,16 @@
           "score": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SendMessageDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

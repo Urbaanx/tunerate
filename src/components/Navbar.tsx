@@ -1,13 +1,85 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
-import { Menu, X, Search } from "lucide-react";
+import {
+  Home,
+  Search,
+  Library,
+  LayoutDashboard,
+  Users,
+  Bell,
+  MessagesSquare,
+  Info,
+  Menu,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  useGetApiSocialShares,
+  useGetApiSocialRequests,
+} from "../api/endpoints/tunerateApi";
+import { useGetApiChatUnreadCounts } from "../api/endpoints/tunerateApi";
 
 const Navbar: React.FC = () => {
-  const { isAuthenticated, loginWithRedirect, logout, user } = useAuth0();
+  const {
+    isAuthenticated,
+    loginWithRedirect,
+    logout,
+    user,
+    getAccessTokenSilently,
+  } = useAuth0();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setToken(null);
+      return;
+    }
+    let mounted = true;
+    getAccessTokenSilently()
+      .then((t) => {
+        if (mounted) setToken(t);
+      })
+      .catch(() => {
+        if (mounted) setToken(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, getAccessTokenSilently]);
+
+  const requestOptions = token
+    ? {
+        request: { headers: { Authorization: `Bearer ${token}` } },
+        query: {
+          enabled: true,
+          // odświeżaj co 5 sekund, działa także gdy aplikacja w tle
+          refetchInterval: 5000,
+          refetchIntervalInBackground: true,
+        },
+      }
+    : { query: { enabled: false } };
+
+  // fetch shares and incoming requests to compute unread count
+  const sharesQuery = useGetApiSocialShares<any, unknown>(requestOptions);
+  const requestsQuery = useGetApiSocialRequests<any, unknown>(requestOptions);
+
+  const shares = sharesQuery.data ?? [];
+  const requests = requestsQuery.data ?? [];
+  const unreadShares = Array.isArray(shares)
+    ? (shares as any[]).filter((s) => !(s.isRead ?? s.IsRead ?? false)).length
+    : 0;
+  const unreadRequests = Array.isArray(requests)
+    ? (requests as any[]).length
+    : 0;
+  // wiadomości
+  const unreadMessagesQuery = useGetApiChatUnreadCounts<any, unknown>(
+    requestOptions
+  );
+  const unreadNotificationsCount = unreadShares + unreadRequests;
+  const unreadMessagesTotal = unreadMessagesQuery.data?.total ?? 0;
 
   const handleLogout = () => {
     logout({ logoutParams: { returnTo: window.location.origin } });
@@ -23,6 +95,22 @@ const Navbar: React.FC = () => {
         .join("")
         .toUpperCase()
     : "U";
+
+  const NavItem: React.FC<{
+    to: string;
+    icon: React.ElementType;
+    label: string;
+    onClick?: () => void;
+  }> = ({ to, icon: Icon, label, onClick }) => (
+    <Link
+      to={to}
+      onClick={onClick}
+      className="flex items-center gap-2 text-sm text-gray-100 hover:text-white transition"
+    >
+      <Icon className="w-4 h-4 text-gray-200" aria-hidden />
+      <span>{label}</span>
+    </Link>
+  );
 
   return (
     <nav className="sticky top-0 z-40 bg-gradient-to-r from-purple-800 to-indigo-900 shadow-md border-b border-indigo-800">
@@ -46,46 +134,54 @@ const Navbar: React.FC = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-6">
-          <Link
-            to="/"
-            className="text-sm text-gray-100 hover:text-white transition"
-          >
-            Strona główna
-          </Link>
-          <Link
-            to="/search"
-            className="text-sm text-gray-100 hover:text-white transition"
-          >
-            Szukaj
-          </Link>
+          <NavItem to="/" icon={Home} label="Strona główna" />
+          <NavItem to="/search" icon={Search} label="Szukaj" />
           {isAuthenticated && (
-            <Link
-              to="/collection"
-              className="text-sm text-gray-100 hover:text-white transition"
-            >
-              Kolekcja
-            </Link>
+            <NavItem to="/collection" icon={Library} label="Kolekcja" />
           )}
           {isAuthenticated && (
+            <NavItem to="/dashboard" icon={LayoutDashboard} label="Panel" />
+          )}
+          {isAuthenticated && (
+            <NavItem to="/friends" icon={Users} label="Znajomi" />
+          )}
+
+          {isAuthenticated ? (
             <Link
-              to="/dashboard"
-              className="text-sm text-gray-100 hover:text-white transition"
+              to="/notifications"
+              className="relative flex items-center gap-2 text-sm text-gray-100 hover:text-white transition"
             >
-              Panel
+              <Bell className="w-4 h-4 text-gray-200" aria-hidden />
+              <span>Powiadomienia</span>
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                  {unreadNotificationsCount}
+                </span>
+              )}
             </Link>
+          ) : (
+            <NavItem to="/notifications" icon={Bell} label="Powiadomienia" />
+          )}
+
+          {isAuthenticated ? (
+            <Link
+              to="/chat"
+              className="relative flex items-center gap-2 text-sm text-gray-100 hover:text-white transition"
+            >
+              <MessagesSquare className="w-4 h-4 text-gray-200" aria-hidden />
+              <span>Czat</span>
+              {unreadMessagesTotal > 0 && (
+                <span className="absolute -top-1 -right-3 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                  {unreadMessagesTotal}
+                </span>
+              )}
+            </Link>
+          ) : (
+            <NavItem to="/chat" icon={MessagesSquare} label="Czat" />
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/search")}
-            className="hidden sm:flex items-center gap-2 bg-black/20 hover:bg-black/25 px-3 py-1 rounded-lg text-gray-100 transition"
-            aria-label="Szukaj"
-          >
-            <Search className="w-4 h-4" />
-            <span className="text-sm">Szukaj</span>
-          </button>
-
           <div className="hidden md:flex items-center gap-3">
             {!isAuthenticated ? (
               <button
@@ -133,41 +229,78 @@ const Navbar: React.FC = () => {
             <Link
               to="/"
               onClick={toggleMenu}
-              className="block text-gray-100 hover:text-white"
+              className="flex items-center gap-2 text-gray-100 hover:text-white"
             >
-              Strona główna
+              <Home className="w-4 h-4" /> Strona główna
             </Link>
             <Link
               to="/search"
               onClick={toggleMenu}
-              className="block text-gray-100 hover:text-white"
+              className="flex items-center gap-2 text-gray-100 hover:text-white"
             >
-              Szukaj
+              <Search className="w-4 h-4" /> Szukaj
             </Link>
             {isAuthenticated && (
               <Link
                 to="/collection"
                 onClick={toggleMenu}
-                className="block text-gray-100 hover:text-white"
+                className="flex items-center gap-2 text-gray-100 hover:text-white"
               >
-                Kolekcja
+                <Library className="w-4 h-4" /> Kolekcja
               </Link>
             )}
             {isAuthenticated && (
               <Link
                 to="/dashboard"
                 onClick={toggleMenu}
-                className="block text-gray-100 hover:text-white"
+                className="flex items-center gap-2 text-gray-100 hover:text-white"
               >
-                Panel
+                <LayoutDashboard className="w-4 h-4" /> Panel
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link
+                to="/friends"
+                onClick={toggleMenu}
+                className="flex items-center gap-2 text-gray-100 hover:text-white"
+              >
+                <Users className="w-4 h-4" /> Znajomi
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link
+                to="/notifications"
+                onClick={toggleMenu}
+                className="flex items-center gap-2 text-gray-100 hover:text-white relative"
+              >
+                <Bell className="w-4 h-4" /> Powiadomienia
+                {unreadNotificationsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link
+                to="/chat"
+                onClick={toggleMenu}
+                className="flex items-center gap-2 text-gray-100 hover:text-white relative"
+              >
+                <MessagesSquare className="w-4 h-4" /> Czat
+                {unreadMessagesTotal > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-red-600 rounded-full">
+                    {unreadMessagesTotal}
+                  </span>
+                )}
               </Link>
             )}
             <Link
               to="/about"
               onClick={toggleMenu}
-              className="block text-gray-300 hover:text-white"
+              className="block text-gray-300 flex items-center gap-2"
             >
-              O projekcie
+              <Info className="w-4 h-4" /> O projekcie
             </Link>
 
             {!isAuthenticated ? (

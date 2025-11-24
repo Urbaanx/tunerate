@@ -24,6 +24,11 @@ export interface ReviewDto {
   score?: number;
 }
 
+export interface SendMessageDto {
+  /** @nullable */
+  content?: string | null;
+}
+
 export type GetApiAlbumsParams = {
 page?: number;
 pageSize?: number;
@@ -42,6 +47,10 @@ pageSize?: number;
 sort?: string;
 };
 
+export type GetApiChatHistoryOtherUserIdParams = {
+limit?: number;
+};
+
 export type GetApiRecommendationsUserIdParams = {
 type?: string;
 topN?: number;
@@ -55,5 +64,10 @@ export type GetApiReviewsAlbumIdParams = {
 page?: number;
 pageSize?: number;
 sort?: string;
+};
+
+export type GetApiSocialSearchParams = {
+query?: string;
+limit?: number;
 };
 
