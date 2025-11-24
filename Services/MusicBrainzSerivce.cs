@@ -1,10 +1,8 @@
-﻿using tunerate_api.Models;
-using RestSharp;
+﻿using RestSharp;
 using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Caching.Memory;
-using System.Collections.Concurrent;
-using System.Threading;
+using tunerate_api.DTOs;
 
 namespace tunerate_api.Services
 {

@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
-using tunerate_api.Data;
-using tunerate_api.Models;
 using tunerate_api.Services;
+using tunerate_api.DTOs;
 
 namespace tunerate_api.Controllers
 {
@@ -65,5 +63,19 @@ namespace tunerate_api.Controllers
 
             return Ok(new { message = result.Message });
         }
+        
+        // GET: api/useralbums/{userId}
+        [HttpGet("{userId:guid}")]
+        [AllowAnonymous] // ❗ jeśli ma być publiczne dla znajomych — lub usuń gdy wymaga tokena
+        public async Task<IActionResult> GetAlbumsOfUser(Guid userId)
+        {
+            var albums = await _albumService.GetAlbumsOfUserAsync(userId);
+
+            if (albums == null)
+                return NotFound("Użytkownik nie istnieje.");
+
+            return Ok(albums);
+        }
+
     }
 }

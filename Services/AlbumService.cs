@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using tunerate_api.Data;
 using tunerate_api.Models;
+using tunerate_api.DTOs;
 
 namespace tunerate_api.Services
 {
@@ -133,5 +134,30 @@ namespace tunerate_api.Services
 
             return (true, "Album usunięty z kolekcji.");
         }
+        
+        public async Task<List<object>?> GetAlbumsOfUserAsync(Guid userId)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserAlbums)
+                .ThenInclude(ua => ua.Album)
+                .ThenInclude(a => a.Artist)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                return null;
+
+            return user.UserAlbums
+                .OrderByDescending(ua => ua.CreatedAt)
+                .Select(ua => new {
+                    ua.Album.Id,
+                    ua.Album.Title,
+                    Artist = ua.Album.Artist.Name,
+                    ua.Album.CoverUrl,
+                    ua.Status,
+                    ua.CreatedAt
+                })
+                .ToList<object>();
+        }
+
     }
 }

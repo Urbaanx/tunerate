@@ -6,7 +6,7 @@ using System.Security.Claims;
 using tunerate_api.Data;
 using tunerate_api.Services;
 using tunerate_api.Swagger;
-
+using tunerate_api.Hubs;
 
 namespace tunerate_api;
 
@@ -17,8 +17,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         var domain = $"https://{builder.Configuration["Auth0:Domain"]}/";
 
-        // Add services to the container.
-        
+        // AUTH
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
@@ -28,15 +27,42 @@ public class Program
                 {
                     NameClaimType = ClaimTypes.NameIdentifier
                 };
+
+                // Allow SignalR tokens via query string
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                        var path = context.HttpContext.Request.Path;
+
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            path.StartsWithSegments("/hubs/social"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
+
         builder.Services.AddAuthorization(options =>
         {
-            options.AddPolicy("admin", policy => policy.Requirements.Add(new HasScopeRequirement("admin", domain)));
+            options.AddPolicy("admin", policy =>
+                policy.Requirements.Add(new HasScopeRequirement("admin", domain)));
         });
+
+        // SERVICES
         builder.Services.AddScoped<MusicBrainzService>();
         builder.Services.AddScoped<DeezerPreviewService>();
+        builder.Services.AddScoped<AlbumService>();
         builder.Services.AddMemoryCache();
+
         builder.Services.AddControllers();
+        builder.Services.AddSignalR();
+
+        // SWAGGER
         builder.Services.AddSwaggerGen(c =>
         {
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -65,28 +91,29 @@ public class Program
             });
             c.OperationFilter<SwaggerAuthorizeFilter>();
         });
-        
+
+        // CORS
         builder.Services.AddCors(options =>
         {
-            options.AddPolicy("AllowSpecificOrigin",
-                policy =>
-                {
-                    policy.WithOrigins("http://localhost:5173")
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
-                });
+            options.AddPolicy("AllowSpecificOrigin", policy =>
+            {
+                policy.WithOrigins("http://localhost:5173")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            });
         });
-        
+
+        // DB
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-        builder.Services.AddScoped<AlbumService>();
+
         var app = builder.Build();
 
+        // MIDDLEWARE
         app.UseMiddleware<TokenDecodingMiddlewere>();
         app.UseCors("AllowSpecificOrigin");
-        
 
-        // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
@@ -97,8 +124,9 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
 
-
+        // ROUTES
         app.MapControllers();
+        app.MapHub<SocialHub>("/hubs/social");
 
         app.Run();
     }

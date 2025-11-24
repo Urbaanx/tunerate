@@ -4,6 +4,7 @@ using tunerate_api.Data;
 using tunerate_api.Services;
 using Microsoft.EntityFrameworkCore;
 using tunerate_api.Models;
+using tunerate_api.DTOs;
 
 namespace tunerate_api.Controllers
 {

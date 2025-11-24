@@ -1,4 +1,4 @@
-﻿namespace tunerate_api.Models;
+﻿namespace tunerate_api.DTOs;
 
 public class TrackDto
 {

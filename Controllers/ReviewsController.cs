@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using tunerate_api.Data;
 using tunerate_api.Models;
+using tunerate_api.DTOs;
 
 namespace tunerate_api.Controllers
 {
