@@ -62,9 +62,6 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddSignalR();
 
-        // register presence service
-        builder.Services.AddSingleton<IPresenceService, PresenceService>();
-
         // SWAGGER
         builder.Services.AddSwaggerGen(c =>
         {
