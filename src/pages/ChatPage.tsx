@@ -128,6 +128,35 @@ export default function ChatPage() {
     };
   }, [token]);
 
+  // 🔹 Obsługa zdarzeń SignalR
+  useEffect(() => {
+    if (!connection) return;
+
+    const handler = (payload: any) => {
+      console.debug("FriendPresenceChanged", payload);
+      // odśwież listę znajomych (orval query refetch)
+      refetch();
+
+      // jeśli aktualnie wybrany znajomy to ten, którego dotyczy zmiana — zaktualizuj local state
+      try {
+        const userId = payload?.UserId ?? payload?.userId;
+        const isOnline = payload?.IsOnline ?? payload?.isOnline;
+        if (selectedFriend && String(selectedFriend.id) === String(userId)) {
+          setSelectedFriend((s: any) => ({
+            ...s,
+            status: isOnline ? "Online" : "Offline",
+          }));
+        }
+      } catch {}
+    };
+
+    connection.on("FriendPresenceChanged", handler);
+
+    return () => {
+      connection.off("FriendPresenceChanged", handler);
+    };
+  }, [connection, refetch, selectedFriend]);
+
   // 🔹 Wymagane zalogowanie
   if (!isAuthenticated) {
     return (

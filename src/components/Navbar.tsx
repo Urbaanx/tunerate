@@ -19,6 +19,8 @@ import {
   useGetApiSocialRequests,
 } from "../api/endpoints/tunerateApi";
 import { useGetApiChatUnreadCounts } from "../api/endpoints/tunerateApi";
+import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Navbar: React.FC = () => {
   const {
@@ -31,6 +33,9 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [hubConnection, setHubConnection] =
+    React.useState<HubConnection | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -112,6 +117,70 @@ const Navbar: React.FC = () => {
     </Link>
   );
 
+  // Global SignalR connection for presence (app-wide)
+  React.useEffect(() => {
+    if (!token) {
+      // cleanup if token lost
+      if (hubConnection) {
+        hubConnection.stop().catch(() => {});
+        setHubConnection(null);
+      }
+      return;
+    }
+
+    const apiUrl =
+      import.meta.env.VITE_AXIOS_BASE_URL_API ?? "http://localhost:5000";
+    const conn = new HubConnectionBuilder()
+      .withUrl(`${apiUrl}/hubs/social`, {
+        accessTokenFactory: () => token,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    conn
+      .start()
+      .then(async () => {
+        try {
+          await conn.invoke("RegisterConnection");
+          console.debug("Navbar: SignalR registered");
+        } catch (err) {
+          console.warn("Navbar: RegisterConnection failed", err);
+        }
+        setHubConnection(conn);
+      })
+      .catch((err) => {
+        console.error("Navbar: SignalR start error", err);
+        setHubConnection(null);
+      });
+
+    // handler: on presence change invalidate relevant queries so UI refreshes everywhere
+    const presenceHandler = (payload: any) => {
+      console.debug("Navbar: FriendPresenceChanged", payload);
+      try {
+        // try to invalidate queries related to social/chat so components refetch
+        queryClient.invalidateQueries({
+          predicate: (q) => {
+            const key = Array.isArray(q.queryKey)
+              ? q.queryKey.join(" ")
+              : String(q.queryKey);
+            return /social|friends|chat|unread|shares|requests/i.test(key);
+          },
+        });
+      } catch (e) {
+        // fallback: invalidate all
+        queryClient.invalidateQueries();
+      }
+    };
+
+    conn.on("FriendPresenceChanged", presenceHandler);
+
+    return () => {
+      conn.off("FriendPresenceChanged", presenceHandler);
+      conn.stop().catch(() => {});
+      setHubConnection(null);
+    };
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <nav className="sticky top-0 z-40 bg-gradient-to-r from-purple-800 to-indigo-900 shadow-md border-b border-indigo-800">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
@@ -191,16 +260,39 @@ const Navbar: React.FC = () => {
                 Zaloguj
               </button>
             ) : (
-              <div className="flex items-center gap-3 bg-black/20 px-3 py-1 rounded-full">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-sm font-semibold text-white">
-                  {initials}
-                </div>
-                <div className="text-sm text-left">
-                  <div className="text-xs text-gray-300">Witaj,</div>
-                  <div className="font-medium text-white">
-                    {user?.name ?? user?.email}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 bg-black/20 px-3 py-1 rounded-full">
+                  {/*
+                    If Auth0 user object exposes picture (user.picture) show it,
+                    otherwise fallback to initials circle (existing behavior).
+                  */}
+                  {user?.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user?.name ?? user?.email ?? "User avatar"}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-sm font-semibold text-white">
+                      {initials}
+                    </div>
+                  )}
+                  <div className="text-sm text-left">
+                    <div className="text-xs text-gray-300">Witaj,</div>
+                    <div className="font-medium text-white">
+                      {user?.name ?? user?.email}
+                    </div>
                   </div>
                 </div>
+
+                {/* Logout button visible on desktop */}
+                <button
+                  onClick={handleLogout}
+                  className="ml-2 px-3 py-2 bg-red-600 text-sm font-medium rounded-lg hover:bg-red-700 transition"
+                  aria-label="Wyloguj"
+                >
+                  Wyloguj
+                </button>
               </div>
             )}
           </div>

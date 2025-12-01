@@ -86,6 +86,21 @@ export default function FriendProfilePage() {
     ? userAlbums
     : userAlbums?.items ?? [];
 
+  // prepare friend object for header so status/avatar are passed to FriendListItem
+  const friendForHeader = {
+    id: normalizedProfile.id ?? normalizedProfile.Id,
+    nickname:
+      normalizedProfile.nickname ?? normalizedProfile.Nickname ?? "Nieznany",
+    // status may come as status/Status from API (if not present FriendListItem will fallback to "Offline")
+    status: normalizedProfile.status ?? normalizedProfile.Status,
+    // avatar: prefer common fields returned by backend/auth0
+    avatarUrl:
+      normalizedProfile.picture ??
+      normalizedProfile.Picture ??
+      normalizedProfile.avatarUrl ??
+      normalizedProfile.AvatarUrl,
+  };
+
   // 🔹 loading
   if (
     loadingProfile ||
@@ -113,15 +128,7 @@ export default function FriendProfilePage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Profil użytkownika */}
-      <FriendListItem
-        friend={{
-          id: normalizedProfile.id ?? normalizedProfile.Id,
-          nickname:
-            normalizedProfile.nickname ??
-            normalizedProfile.Nickname ??
-            "Nieznany",
-        }}
-      />
+      <FriendListItem friend={friendForHeader} />
 
       {/* Ostatnie oceny */}
       <h2 className="text-xl font-bold mt-6 mb-2">Ostatnie oceny</h2>
