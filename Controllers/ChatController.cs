@@ -149,11 +149,11 @@ namespace tunerate_api.Controllers
             // wysyłamy w czasie rzeczywistym - minimalny DTO (bez navigational cycles)
             await _hub.Clients.Group(target.Auth0Id).SendAsync("ChatMessageReceived", new
             {
-                Id = message.Id,
+                message.Id,
                 FromUser = new { from.Id, from.Nickname, from.Auth0Id },
                 ToUserId = toUserId,
-                Content = message.Content,
-                SentAt = message.SentAt
+                message.Content,
+                message.SentAt
             });
 
             // odśwież i wyślij liczniki nieodczytanych do odbiorcy

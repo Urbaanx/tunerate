@@ -143,7 +143,7 @@ namespace tunerate_api.Controllers
             return Ok(new
             {
                 Items = albums,
-                Count = albums.Count,
+                albums.Count,
                 Source = "local_preview"
             });
         }
@@ -183,8 +183,8 @@ namespace tunerate_api.Controllers
 
             return Ok(new
             {
-                Items = albumsFromApi.Items,
-                TotalCount = albumsFromApi.TotalCount,
+                albumsFromApi.Items,
+                albumsFromApi.TotalCount,
                 Page = page,
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling((double)albumsFromApi.TotalCount / pageSize),

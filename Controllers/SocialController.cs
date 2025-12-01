@@ -6,6 +6,7 @@ using tunerate_api.Data;
 using tunerate_api.Hubs;
 using tunerate_api.Models;
 using Microsoft.EntityFrameworkCore;
+using tunerate_api.Services;
 
 namespace tunerate_api.Controllers
 {
@@ -16,11 +17,13 @@ namespace tunerate_api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IHubContext<SocialHub> _hub;
+        private readonly IPresenceService _presence;
 
-        public SocialController(AppDbContext context, IHubContext<SocialHub> hub)
+        public SocialController(AppDbContext context, IHubContext<SocialHub> hub, IPresenceService presence)
         {
             _context = context;
             _hub = hub;
+            _presence = presence;
         }
 
         private string GetAuth0Id()
@@ -96,7 +99,7 @@ namespace tunerate_api.Controllers
                 {
                     FriendshipId = friendship.Id,
                     FromUser = new { from.Id, from.Nickname, from.Auth0Id },
-                    CreatedAt = friendship.CreatedAt
+                    friendship.CreatedAt
                 });
             }
 
@@ -165,7 +168,13 @@ namespace tunerate_api.Controllers
                 .ToListAsync();
 
             var users = await _context.Users.Where(u => friends.Contains(u.Id))
-                .Select(u => new { u.Id, u.Nickname, u.Auth0Id })
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Nickname,
+                    u.Auth0Id,
+                    Status = _presence.IsOnline(u.Auth0Id) ? "Online" : "Offline"
+                })
                 .ToListAsync();
 
             return Ok(users);
@@ -223,27 +232,24 @@ namespace tunerate_api.Controllers
             // przygotuj bezpieczny DTO/payload (tylko skalarne pola, brak referencji do encji EF)
             var payload = new
             {
-                Id = share.Id,
-                IsRead = share.IsRead,
-                CreatedAt = share.CreatedAt,
-                FromUser = new { Id = from.Id, Nickname = from.Nickname, Auth0Id = from.Auth0Id },
+                share.Id,
+                share.IsRead,
+                share.CreatedAt,
+                FromUser = new { from.Id, from.Nickname, from.Auth0Id },
                 Album = new
                 {
-                    Id = album.Id,
-                    Title = album.Title,
-                    CoverUrl = album.CoverUrl,
-                    ExternalId = album.ExternalId,
+                    album.Id,
+                    album.Title,
+                    album.CoverUrl,
+                    album.ExternalId,
                     // tylko nazwa artysty, nie cały obiekt Artist
-                    Name = album.Artist != null ? album.Artist.Name : null,
-                    ReleaseDate = album.ReleaseDate
+                    album.Artist.Name,
+                    album.ReleaseDate
                 }
             };
 
             // push via SignalR - wysyłamy tylko payload (bez cykli)
-            if (target != null)
-            {
-                await _hub.Clients.Group(target.Auth0Id).SendAsync("AlbumShareReceived", payload);
-            }
+            await _hub.Clients.Group(target.Auth0Id).SendAsync("AlbumShareReceived", payload);
 
             // zwróć DTO zamiast encji EF
             return Ok(payload);
@@ -275,7 +281,7 @@ namespace tunerate_api.Controllers
                         s.Album.CoverUrl,
                         s.Album.ExternalId,
                         s.Album.Artist.Name,
-                        ReleaseDate = s.Album.ReleaseDate
+                        s.Album.ReleaseDate
                     }
                 })
                 .ToListAsync();
@@ -300,10 +306,10 @@ namespace tunerate_api.Controllers
             // zwracamy minimalny DTO, nie encję EF
             var result = new
             {
-                Id = s.Id,
-                IsRead = s.IsRead,
-                CreatedAt = s.CreatedAt,
-                AlbumId = s.AlbumId
+                s.Id,
+                s.IsRead,
+                s.CreatedAt,
+                s.AlbumId
             };
 
             return Ok(result);
@@ -320,6 +326,9 @@ namespace tunerate_api.Controllers
                     u.Id,
                     u.Nickname,
                     u.Auth0Id,
+
+                    // dodane: status na podstawie serwisu obecności
+                    Status = _presence.IsOnline(u.Auth0Id) ? "Online" : "Offline",
 
                     Reviews = _context.Reviews
                         .Where(r => r.UserId == userId)
