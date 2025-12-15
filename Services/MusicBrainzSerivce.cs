@@ -3,10 +3,11 @@ using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Caching.Memory;
 using tunerate_api.DTOs;
+using tunerate_api.Interfaces;
 
 namespace tunerate_api.Services
 {
-    public class MusicBrainzService
+    public class MusicBrainzService : IMusicBrainzService
     {
         private readonly RestClient _client;
         private readonly RestClient _coverArtClient;
@@ -134,9 +135,10 @@ namespace tunerate_api.Services
                 return "";
 
             string key = $"cover_{musicBrainzReleaseId}";
-            if (_cache.TryGetValue(key, out string cached)) return cached;
+            if (_cache.TryGetValue(key, out string? cached))
+                if (cached != null)
+                    return cached;
 
-            // ogranicz równoległość aby nie przekroczyć limitów zewnętrznych API
             await _semaphore.WaitAsync();
             try
             {

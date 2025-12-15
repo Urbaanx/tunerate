@@ -2,9 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Caching.Memory;
 using tunerate_api.Data;
-using tunerate_api.Services;
+using tunerate_api.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using tunerate_api.Models;
 using tunerate_api.DTOs;
 
 namespace tunerate_api.Controllers
@@ -13,18 +12,19 @@ namespace tunerate_api.Controllers
     [ApiController]
     public class AlbumsController : ControllerBase
     {
-        private readonly MusicBrainzService _musicBrainzService;
-        private readonly DeezerPreviewService _deezerPreviewService;
+        private readonly IMusicBrainzService _musicBrainzService;
+        private readonly IDeezerPreviewService _deezerPreviewService;
         private readonly IMemoryCache _cache;
         private readonly AppDbContext _context;
-
-        public AlbumsController(MusicBrainzService musicBrainzService, AppDbContext context, DeezerPreviewService deezerPreviewService,
-            IMemoryCache cache)
+        private readonly IAlbumService _albumService;
+        public AlbumsController(IMusicBrainzService musicBrainzService, AppDbContext context, IDeezerPreviewService deezerPreviewService,
+            IMemoryCache cache, IAlbumService albumService)
         {
             _musicBrainzService = musicBrainzService;
             _context = context;
             _deezerPreviewService = deezerPreviewService;
             _cache = cache;
+            _albumService = albumService;
         }
         
         [HttpGet]
@@ -43,6 +43,7 @@ namespace tunerate_api.Controllers
             if (pageSize <= 0) pageSize = 20;
 
             var albumsQuery = _context.Albums
+                .AsNoTracking()
                 .Include(a => a.Artist)
                 .Include(a => a.Reviews)
                 .Include(a => a.AlbumTags).ThenInclude(at => at.Tag)
@@ -117,6 +118,7 @@ namespace tunerate_api.Controllers
         public async Task<IActionResult> GetLandingPagePreviewAlbums()
         {
             var albums = await _context.Albums
+                .AsNoTracking()
                 .Include(a => a.Artist)
                 .Include(a => a.AlbumTags).ThenInclude(at => at.Tag)
                 .Include(a => a.Reviews)
@@ -138,7 +140,7 @@ namespace tunerate_api.Controllers
             return Ok(new
             {
                 Items = albums,
-                Count = albums.Count,
+                albums.Count,
                 Source = "local_preview"
             });
         }
@@ -148,6 +150,7 @@ namespace tunerate_api.Controllers
         public async Task<IActionResult> GetAllAlbumsFlat()
         {
             var albums = await _context.Albums
+                .AsNoTracking()
                 .Include(a => a.Artist)
                 .Select(a => new
                 {
@@ -178,8 +181,8 @@ namespace tunerate_api.Controllers
 
             return Ok(new
             {
-                Items = albumsFromApi.Items,
-                TotalCount = albumsFromApi.TotalCount,
+                albumsFromApi.Items,
+                albumsFromApi.TotalCount,
                 Page = page,
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling((double)albumsFromApi.TotalCount / pageSize),
@@ -194,74 +197,24 @@ namespace tunerate_api.Controllers
             if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Artist))
                 return BadRequest("Tytuł i wykonawca są wymagane.");
 
-            var existingAlbum = await _context.Albums
-                .Include(a => a.Artist)
-                .FirstOrDefaultAsync(a =>
-                    (!string.IsNullOrEmpty(dto.ExternalId) && a.ExternalId == dto.ExternalId) ||
-                    (a.Title == dto.Title && a.Artist.Name == dto.Artist));
+            var (album, created) = await _albumService.FindOrCreateAlbumAsync(dto);
 
-            if (existingAlbum != null)
+            if (!created)
                 return Ok(new
                 {
-                    existingAlbum.Id,
-                    existingAlbum.Title,
-                    Artist = existingAlbum.Artist.Name,
-                    existingAlbum.CoverUrl,
-                    existingAlbum.ReleaseDate,
-                    existingAlbum.ExternalId
+                    album.Id,
+                    album.Title,
+                    Artist = album.Artist.Name,
+                    album.CoverUrl,
+                    album.ReleaseDate,
+                    album.ExternalId
                 });
-
-            var artist = await _context.Artists.FirstOrDefaultAsync(a => a.Name == dto.Artist);
-            if (artist == null)
-            {
-                artist = new Artist { Name = dto.Artist };
-                _context.Artists.Add(artist);
-                await _context.SaveChangesAsync();
-            }
-
-            var album = new Album
-            {
-                Title = dto.Title,
-                Artist = artist,
-                ArtistId = artist.Id,
-                CoverUrl = dto.CoverUrl,
-                ReleaseDate = Convert.ToDateTime(dto.ReleaseDate),
-                ExternalId = dto.ExternalId
-            };
-
-            _context.Albums.Add(album);
-            await _context.SaveChangesAsync();
-
-            if (!string.IsNullOrEmpty(dto.ExternalId))
-            {
-                var tags = await _musicBrainzService.GetAlbumTagsAsync(dto.ExternalId);
-                foreach (var tagName in tags)
-                {
-                    var existingTag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
-                    if (existingTag == null)
-                    {
-                        existingTag = new Tag { Name = tagName };
-                        _context.Tags.Add(existingTag);
-                        await _context.SaveChangesAsync();
-                    }
-
-                    if (!await _context.AlbumTags.AnyAsync(t => t.AlbumId == album.Id && t.TagId == existingTag.Id))
-                    {
-                        _context.AlbumTags.Add(new AlbumTag
-                        {
-                            AlbumId = album.Id,
-                            TagId = existingTag.Id
-                        });
-                    }
-                }
-                await _context.SaveChangesAsync();
-            }
 
             return CreatedAtAction(nameof(GetAlbumDetails), new { id = album.Id }, new
             {
                 album.Id,
                 album.Title,
-                Artist = artist.Name,
+                Artist = album.Artist.Name,
                 album.CoverUrl,
                 album.ReleaseDate,
                 album.ExternalId
@@ -273,6 +226,7 @@ namespace tunerate_api.Controllers
         public async Task<IActionResult> GetAlbumDetails(Guid id)
         {
             var album = await _context.Albums
+                .AsNoTracking()
                 .Include(a => a.Artist)
                 .Include(a => a.Reviews)
                 .ThenInclude(r => r.User)

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using tunerate_api.Services;
+using tunerate_api.Interfaces;
 using tunerate_api.DTOs;
 
 namespace tunerate_api.Controllers
@@ -11,9 +11,9 @@ namespace tunerate_api.Controllers
     [Authorize]
     public class UserAlbumsController : ControllerBase
     {
-        private readonly AlbumService _albumService;
+        private readonly IAlbumService _albumService;
 
-        public UserAlbumsController(AlbumService albumService)
+        public UserAlbumsController(IAlbumService albumService)
         {
             _albumService = albumService;
         }
@@ -43,7 +43,7 @@ namespace tunerate_api.Controllers
 
             var albums = await _albumService.GetUserAlbumsAsync(auth0Id);
 
-            if (!albums.Any())
+            if (albums != null && !albums.Any())
                 return NotFound("Nie znaleziono użytkownika lub albumów.");
 
             return Ok(albums);

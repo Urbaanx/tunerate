@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using tunerate_api.Data;
 using tunerate_api.Models;
-using tunerate_api.Services;
+using tunerate_api.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace tunerate_api.Hubs;

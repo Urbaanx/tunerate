@@ -3,11 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using tunerate_api.Data;
-using tunerate_api.Models;
-using RestSharp;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using tunerate_api.DTOs;
+using tunerate_api.Interfaces;
 
 namespace tunerate_api.Controllers
 {
@@ -17,112 +15,68 @@ namespace tunerate_api.Controllers
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _conf;
-        private readonly Auth0TokenSettings? _tokenSettings;
+        private readonly IUserService _userService;
 
-        public UsersController(AppDbContext context, IConfiguration config)
+        public UsersController(AppDbContext context, IUserService userService)
         {
             _context = context;
-            _conf = config;
-            _tokenSettings = _conf.GetSection("Auth0ManagementToken").Get<Auth0TokenSettings>();
+            _userService = userService;
         }
-        
+
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> GetAllUsers()
         {
-            var users = await _context.Users.ToListAsync();
+            var users = await _userService.GetAllUsersAsync();
             return Ok(users);
         }
-        
+
         [HttpGet("by-auth0id/{auth0Id}")]
         [Authorize]
         public async Task<IActionResult> GetUserByAuth0Id(string auth0Id)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
+            var user = await _userService.GetUserByAuth0IdAsync(auth0Id);
             if (user == null) return NotFound("Użytkownik nie znaleziony.");
             return Ok(user);
         }
-        
+
         [HttpGet("getAuth0User")]
         public async Task<IActionResult> GetUser()
         {
             var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0Id == null) return Unauthorized("Brak Auth0 ID.");
-            
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-            if (user == null) return NotFound("Użytkownik nie znaleziony.");
-            
-            var client = new RestClient($"https://{_conf["Auth0:Domain"]}/api/v2/users/{auth0Id}");
-            var token = GetAuth0ManagementToken();
-            var request = new RestRequest
-            {
-                Method = Method.Get
-            };
-            request.AddHeader("authorization", $"Bearer {token}");
-            var response = client.Execute(request);
-            if (response.Content == null) return BadRequest();
-            var json = JsonSerializer.Deserialize<Auth0UserResponse>(response.Content);
+
+            var json = await _userService.GetAuth0UserFromAuth0ApiAsync(auth0Id);
+            if (json == null) return BadRequest();
             return Ok(json);
         }
-        
+
         [HttpPost("sync")]
         public async Task<IActionResult> SyncUser()
         {
             var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0Id == null) return Unauthorized("Brak Auth0 ID.");
-            
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-            if (user != null) return Ok(user);
-            
-            var client = new RestClient($"https://{_conf["Auth0:Domain"]}/api/v2/users/{auth0Id}");
-            
-            var token = GetAuth0ManagementToken();
-            
-            var request = new RestRequest
-            {
-                Method = Method.Get
-            };
-            request.AddHeader("authorization", $"Bearer {token}");
 
-            var response = client.Execute(request);
-            if (response.Content == null) return BadRequest("Nie udało się pobrać danych użytkownika z Auth0.");
-            var json = JsonSerializer.Deserialize<Auth0UserResponse>(response.Content);
-
-            user = new User
-            {
-                Auth0Id = auth0Id,
-                Nickname = string.Equals(json?.Provider, "auth0", StringComparison.OrdinalIgnoreCase)
-                    ? json?.Username ?? json?.Name ?? json?.Email ?? "Anon"
-                    : json?.Nickname ?? json?.Name ?? json?.Email ?? "Anon"
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
+            var (user, error) = await _userService.SyncUserAsync(auth0Id);
+            if (error != null) return BadRequest(error);
             return Ok(user);
         }
-        
+
         [HttpPut("nickname")]
         [Authorize]
         public async Task<IActionResult> ChangeNickname([FromBody] ChangeNicknameRequest? request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Nickname))
                 return BadRequest("Nowa nazwa użytkownika jest wymagana.");
-        
+
             var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0Id == null) return Unauthorized("Brak Auth0 ID.");
-        
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-            if (user == null) return NotFound("Użytkownik nie znaleziony.");
-        
-            user.Nickname = request.Nickname.Trim();
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
-        
+
+            var (user, error) = await _userService.ChangeNicknameAsync(auth0Id, request.Nickname);
+            if (error != null) return BadRequest(error);
             return Ok(user);
         }
-        
+
         [HttpGet("stats")]
         [Authorize]
         public async Task<IActionResult> GetMyStats()
@@ -130,69 +84,110 @@ namespace tunerate_api.Controllers
             var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (auth0Id == null) return Unauthorized("Brak Auth0 ID.");
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-            if (user == null) return NotFound("Użytkownik nie znaleziony.");
+            var stats = await _userService.GetMyStatsAsync(auth0Id);
+            if (stats is JsonElement je && je.ValueKind == JsonValueKind.Object && je.TryGetProperty("Error", out _))
+                return NotFound("Użytkownik nie znaleziony.");
 
-            var albumsCount = await _context.UserAlbums.CountAsync(ua => ua.UserId == user.Id);
-            var reviewsCount = await _context.Reviews.CountAsync(r => r.UserId == user.Id);
-            var averageScore = await _context.Reviews
-                .Where(r => r.UserId == user.Id)
-                .Select(r => (double?)r.Score)
-                .AverageAsync(); // returns null if user has no reviews
-
-            return Ok(new {
-                AlbumsCount = albumsCount,
-                ReviewsCount = reviewsCount,
-                AverageScore = averageScore
-            });
+            return Ok(stats);
         }
 
-        private JsonElement? GetAuth0ManagementToken()
+        [HttpGet("profile/{userId:guid}")]
+        public async Task<IActionResult> GetUserProfile(Guid userId)
         {
-            var client = new RestClient($"https://{_conf["Auth0:Domain"]}/oauth/token");
-            var request = new RestRequest
-            {
-                Method = Method.Post
-            };
-            request.AddHeader("content-type", "application/json");
-            var jsonBody = JsonSerializer.Serialize(_tokenSettings);
-            request.AddParameter("application/json", jsonBody, ParameterType.RequestBody);
-            var response = client.Execute(request);
-            if(response.Content == null) return null;
-            
-            return JsonSerializer.Deserialize<JsonElement>(response.Content).GetProperty("access_token");
+            var user = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId)
+                .AsSplitQuery()
+                .Select(u => new
+                {
+                    id = u.Id,
+                    nickname = u.Nickname,
+                    auth0Id = u.Auth0Id,
+                    reviews = _context.Reviews
+                        .Where(r => r.UserId == userId)
+                        .OrderByDescending(r => r.CreatedAt)
+                        .Take(20)
+                        .Select(r => new
+                        {
+                            id = r.Id,
+                            score = r.Score,
+                            content = r.Content,
+                            albumId = r.Album.Id,
+                            albumTitle = r.Album.Title,
+                            albumArtist = r.Album.Artist.Name,
+                            albumCoverUrl = r.Album.CoverUrl,
+                            createdAt = r.CreatedAt
+                        })
+                        .ToList(),
+                    albums = _context.UserAlbums
+                        .Where(ua => ua.UserId == userId)
+                        .OrderByDescending(ua => ua.CreatedAt)
+                        .Select(ua => new
+                        {
+                            id = ua.Album.Id,
+                            title = ua.Album.Title,
+                            artist = ua.Album.Artist.Name,
+                            coverUrl = ua.Album.CoverUrl,
+                            status = ua.Status,
+                            createdAt = ua.CreatedAt
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (user == null) return NotFound();
+            return Ok(user);
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchUsers([FromQuery] string query = "", [FromQuery] int limit = 20)
+        {
+            var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (auth0Id == null) return Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Brak parametru 'query'.");
+
+            query = query.Trim();
+
+            var current = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
+            if (current == null) return Unauthorized();
+
+            var results = await _context.Users
+                .Where(u => u.Id != current.Id && EF.Functions.Like(u.Nickname, $"%{query}%"))
+                .OrderBy(u => u.Nickname)
+                .Select(u => new { u.Id, u.Nickname })
+                .Take(limit)
+                .ToListAsync();
+
+            return Ok(results);
         }
     }
-    
+
     public class Auth0UserResponse
     {
-        [JsonPropertyName("nickname")]
         public string? Nickname { get; set; }
-        [JsonPropertyName("name")]
         public string? Name { get; set; }
-        [JsonPropertyName("username")]
         public string? Username { get; set; }
-        [JsonPropertyName("email")]
         public string? Email { get; set; }
-        [JsonPropertyName("identities")]
         public List<Auth0Identity>? Identities { get; set; }
-        
-        [JsonIgnore]
+
+        [System.Text.Json.Serialization.JsonIgnore]
         public string? Provider => Identities?.FirstOrDefault()?.Provider;
     }
 
     public class Auth0Identity
     {
-        [JsonPropertyName("user_id")]
+        [System.Text.Json.Serialization.JsonPropertyName("user_id")]
         public string? UserId { get; set; }
 
-        [JsonPropertyName("provider")]
+        [System.Text.Json.Serialization.JsonPropertyName("provider")]
         public string? Provider { get; set; }
 
-        [JsonPropertyName("connection")]
+        [System.Text.Json.Serialization.JsonPropertyName("connection")]
         public string? Connection { get; set; }
 
-        [JsonPropertyName("isSocial")]
+        [System.Text.Json.Serialization.JsonPropertyName("isSocial")]
         public bool? IsSocial { get; set; }
     }
 }

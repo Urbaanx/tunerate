@@ -1,15 +1,8 @@
 ﻿using System.Collections.Concurrent;
+using tunerate_api.Interfaces;
 
 namespace tunerate_api.Services
 {
-    public interface IPresenceService
-    {
-        bool IsOnline(string auth0Id);
-        int ConnectionCount(string auth0Id);
-        bool AddConnection(string auth0Id, string connectionId);
-        bool RemoveConnection(string auth0Id, string connectionId);
-    }
-
     public class PresenceService : IPresenceService
     {
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _connections =

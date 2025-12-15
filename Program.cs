@@ -8,6 +8,7 @@ using tunerate_api.Data;
 using tunerate_api.Services;
 using tunerate_api.Swagger;
 using tunerate_api.Hubs;
+using tunerate_api.Interfaces;
 
 namespace tunerate_api;
 
@@ -55,9 +56,15 @@ public class Program
         });
 
         // SERVICES
-        builder.Services.AddScoped<MusicBrainzService>();
-        builder.Services.AddScoped<DeezerPreviewService>();
-        builder.Services.AddScoped<AlbumService>();
+        builder.Services.AddScoped<IMusicBrainzService, MusicBrainzService>();
+        builder.Services.AddScoped<IDeezerPreviewService, DeezerPreviewService>();
+        builder.Services.AddScoped<IAlbumService, AlbumService>();
+        builder.Services.AddScoped<IReviewService, ReviewService>();
+        builder.Services.AddScoped<IChatService, ChatService>();
+        builder.Services.AddScoped<IFriendshipService, FriendshipService>();
+        builder.Services.AddScoped<IAlbumShareService, AlbumShareService>();
+        builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IRecommendationService, RecommendationService>();
         builder.Services.AddMemoryCache();
 
         builder.Services.AddControllers();

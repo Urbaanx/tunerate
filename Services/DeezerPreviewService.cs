@@ -1,10 +1,11 @@
 ﻿using RestSharp;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
+using tunerate_api.Interfaces;
 
 namespace tunerate_api.Services;
 
-public class DeezerPreviewService
+public class DeezerPreviewService : IDeezerPreviewService
 {
     private readonly RestClient _client;
     private readonly IMemoryCache _cache;
@@ -51,7 +52,7 @@ public class DeezerPreviewService
             var preview = result?.Data?.FirstOrDefault()?.Preview;
             var value = string.IsNullOrWhiteSpace(preview) ? null : preview;
 
-            _cache.Set<string?>(key, value, _ttl);
+            _cache.Set(key, value, _ttl);
             return value;
         }
         catch
