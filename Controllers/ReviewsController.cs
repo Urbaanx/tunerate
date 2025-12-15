@@ -1,25 +1,29 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using tunerate_api.Data;
 using tunerate_api.Models;
 using tunerate_api.DTOs;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace tunerate_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class ReviewsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _reviewsTtl = TimeSpan.FromSeconds(15);
 
-        public ReviewsController(AppDbContext context)
+        public ReviewsController(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
-
-        // 📄 GET /api/reviews/{albumId}
+        
         [HttpGet("{albumId}")]
         public async Task<IActionResult> GetAlbumReviews(
             Guid albumId,
@@ -29,6 +33,10 @@ namespace tunerate_api.Controllers
         {
             if (page <= 0) page = 1;
             if (pageSize <= 0) pageSize = 5;
+
+            var cacheKey = $"reviews_{albumId}_{page}_{pageSize}_{sort}";
+            if (_cache.TryGetValue<object>(cacheKey, out var cachedObj))
+                return Ok(cachedObj);
 
             var query = _context.Reviews
                 .Include(r => r.User)
@@ -58,17 +66,31 @@ namespace tunerate_api.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new
+            var result = new
             {
                 Items = reviews,
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
-            });
-        }
+            };
 
-        // ✍️ POST /api/reviews/{albumId}
+            _cache.Set(cacheKey, result, _reviewsTtl);
+            
+            var keysKey = $"reviews_keys_{albumId}";
+            if (!_cache.TryGetValue<List<string>>(keysKey, out var keys))
+            {
+                keys = new List<string>();
+            }
+            if (keys != null && !keys.Contains(cacheKey))
+            {
+                keys.Add(cacheKey);
+                _cache.Set(keysKey, keys, TimeSpan.FromHours(1));
+            }
+
+            return Ok(result);
+        }
+        
         [HttpPost("{albumId}")]
         public async Task<IActionResult> AddReview(Guid albumId, [FromBody] ReviewDto reviewDto)
         {
@@ -110,6 +132,8 @@ namespace tunerate_api.Controllers
                 ? album.Reviews.Average(r => r.Score)
                 : null;
             await _context.SaveChangesAsync();
+            
+            InvalidateReviewCache(albumId);
 
             return Ok(new
             {
@@ -123,8 +147,7 @@ namespace tunerate_api.Controllers
                 }
             });
         }
-
-        // ✏️ PUT /api/reviews/{reviewId}
+        
         [HttpPut("{reviewId}")]
         public async Task<IActionResult> EditReview(Guid reviewId, [FromBody] ReviewDto reviewDto)
         {
@@ -153,6 +176,8 @@ namespace tunerate_api.Controllers
                     : null;
                 await _context.SaveChangesAsync();
             }
+            
+            InvalidateReviewCache(review.AlbumId);
 
             return Ok(new
             {
@@ -163,8 +188,7 @@ namespace tunerate_api.Controllers
                 review.CreatedAt
             });
         }
-
-        // 🗑️ DELETE /api/reviews/{reviewId}
+        
         [HttpDelete("{reviewId}")]
         public async Task<IActionResult> DeleteReview(Guid reviewId)
         {
@@ -178,11 +202,13 @@ namespace tunerate_api.Controllers
             if (review == null) return NotFound("Nie znaleziono recenzji.");
             if (review.UserId != user.Id) return Forbid("Nie możesz usuwać cudzej recenzji.");
 
+            var albumId = review.AlbumId;
+
             _context.Reviews.Remove(review);
             await _context.SaveChangesAsync();
 
             var album = await _context.Albums.Include(a => a.Reviews)
-                .FirstOrDefaultAsync(a => a.Id == review.AlbumId);
+                .FirstOrDefaultAsync(a => a.Id == albumId);
             if (album != null)
             {
                 album.AverageRating = album.Reviews.Any()
@@ -190,8 +216,23 @@ namespace tunerate_api.Controllers
                     : null;
                 await _context.SaveChangesAsync();
             }
+            
+            InvalidateReviewCache(albumId);
 
             return Ok(new { Message = "Recenzja została usunięta." });
+        }
+
+        private void InvalidateReviewCache(Guid albumId)
+        {
+            var keysKey = $"reviews_keys_{albumId}";
+            if (_cache.TryGetValue<List<string>>(keysKey, out var keys) && keys != null)
+            {
+                foreach (var k in keys)
+                {
+                    _cache.Remove(k);
+                }
+                _cache.Remove(keysKey);
+            }
         }
     }
 }

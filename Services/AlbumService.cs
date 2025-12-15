@@ -2,16 +2,20 @@
 using tunerate_api.Data;
 using tunerate_api.Models;
 using tunerate_api.DTOs;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace tunerate_api.Services
 {
     public class AlbumService
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _userAlbumsTtl = TimeSpan.FromSeconds(60);
 
-        public AlbumService(AppDbContext context)
+        public AlbumService(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<(bool Success, string Message)> AddAlbumToUserAsync(string auth0Id, AlbumDto albumDto)
@@ -19,8 +23,7 @@ namespace tunerate_api.Services
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
             if (user == null)
                 return (false, "Nie znaleziono użytkownika.");
-
-            // 🔹 Znajdź lub utwórz artystę
+            
             var artist = await _context.Artists
                 .FirstOrDefaultAsync(a => a.ExternalId == albumDto.ArtistId.ToString());
 
@@ -35,9 +38,8 @@ namespace tunerate_api.Services
                 };
                 _context.Artists.Add(artist);
             }
-
-            // 🔹 Znajdź lub utwórz album
-            Album? album = null;
+            
+            Album? album;
 
             if (!string.IsNullOrWhiteSpace(albumDto.ExternalId))
             {
@@ -46,7 +48,6 @@ namespace tunerate_api.Services
             }
             else
             {
-                // awaryjne wyszukiwanie po tytule i artyście
                 album = await _context.Albums
                     .Include(a => a.Artist)
                     .FirstOrDefaultAsync(a =>
@@ -57,7 +58,8 @@ namespace tunerate_api.Services
             if (album == null)
             {
                 var releaseDate = DateTime.UtcNow;
-                if (!string.IsNullOrEmpty(albumDto.ReleaseDate.ToString()) &&
+                if (albumDto.ReleaseDate != null &&
+                    !string.IsNullOrEmpty(albumDto.ReleaseDate) &&
                     DateTime.TryParse(albumDto.ReleaseDate, out var parsed))
                 {
                     releaseDate = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
@@ -74,8 +76,7 @@ namespace tunerate_api.Services
 
                 _context.Albums.Add(album);
             }
-
-            // 🔹 Sprawdź, czy album już w kolekcji
+            
             var alreadyExists = await _context.UserAlbums
                 .AnyAsync(ua => ua.UserId == user.Id && ua.AlbumId == album.Id);
 
@@ -91,12 +92,18 @@ namespace tunerate_api.Services
             });
 
             await _context.SaveChangesAsync();
+            
+            _cache.Remove($"user_albums_{auth0Id}");
 
             return (true, "Album dodany do kolekcji!");
         }
 
-        public async Task<IEnumerable<object>> GetUserAlbumsAsync(string auth0Id)
+        public async Task<IEnumerable<object>?> GetUserAlbumsAsync(string auth0Id)
         {
+            var cacheKey = $"user_albums_{auth0Id}";
+            if (_cache.TryGetValue<IEnumerable<object>>(cacheKey, out var cached))
+                return cached;
+
             var user = await _context.Users
                 .Include(u => u.UserAlbums)
                     .ThenInclude(ua => ua.Album)
@@ -106,7 +113,7 @@ namespace tunerate_api.Services
             if (user == null)
                 return Enumerable.Empty<object>();
 
-            return user.UserAlbums.Select(ua => new
+            var result = user.UserAlbums.Select(ua => new
             {
                 ua.Album.Id,
                 ua.Album.Title,
@@ -116,6 +123,10 @@ namespace tunerate_api.Services
                 ua.Status,
                 ua.CreatedAt
             }).ToList();
+
+            _cache.Set(cacheKey, result, _userAlbumsTtl);
+
+            return result;
         }
         public async Task<(bool Success, string Message)> RemoveAlbumFromUserAsync(string auth0Id, Guid albumId)
         {
@@ -131,6 +142,8 @@ namespace tunerate_api.Services
 
             _context.UserAlbums.Remove(ua);
             await _context.SaveChangesAsync();
+            
+            _cache.Remove($"user_albums_{auth0Id}");
 
             return (true, "Album usunięty z kolekcji.");
         }
@@ -139,8 +152,8 @@ namespace tunerate_api.Services
         {
             var user = await _context.Users
                 .Include(u => u.UserAlbums)
-                .ThenInclude(ua => ua.Album)
-                .ThenInclude(a => a.Artist)
+                    .ThenInclude(ua => ua.Album)
+                        .ThenInclude(a => a.Artist)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -149,12 +162,13 @@ namespace tunerate_api.Services
             return user.UserAlbums
                 .OrderByDescending(ua => ua.CreatedAt)
                 .Select(ua => new {
-                    ua.Album.Id,
-                    ua.Album.Title,
-                    Artist = ua.Album.Artist.Name,
-                    ua.Album.CoverUrl,
-                    ua.Status,
-                    ua.CreatedAt
+                    id = ua.Album.Id,
+                    title = ua.Album.Title,
+                    artist = ua.Album.Artist.Name,
+                    coverUrl = ua.Album.CoverUrl,
+                    status = ua.Status,
+                    createdAt = ua.CreatedAt,
+                    releaseDate = ua.Album.ReleaseDate
                 })
                 .ToList<object>();
         }

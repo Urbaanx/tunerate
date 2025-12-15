@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -61,9 +62,9 @@ public class Program
 
         builder.Services.AddControllers();
         builder.Services.AddSignalR();
-
-        // register presence service
+        
         builder.Services.AddSingleton<IPresenceService, PresenceService>();
+        builder.Services.AddSingleton<IAuthorizationHandler, HasScopeHandler>();
 
         // SWAGGER
         builder.Services.AddSwaggerGen(c =>

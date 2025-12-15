@@ -35,8 +35,7 @@ namespace tunerate_api.Controllers
             var auth0 = GetAuth0Id();
             return await _db.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0);
         }
-
-        // GET: api/chat/history/{otherUserId}
+        
         [HttpGet("history/{otherUserId:guid}")]
         public async Task<IActionResult> GetChatHistory(Guid otherUserId, int limit = 100)
         {
@@ -62,8 +61,7 @@ namespace tunerate_api.Controllers
 
             return Ok(messages);
         }
-
-        // GET: api/chat/unread-counts
+        
         [HttpGet("unread-counts")]
         public async Task<IActionResult> GetUnreadCounts()
         {
@@ -80,8 +78,7 @@ namespace tunerate_api.Controllers
 
             return Ok(new { total, perUser });
         }
-
-        // POST: api/chat/mark-read/{otherUserId}
+        
         [HttpPost("mark-read/{otherUserId:guid}")]
         public async Task<IActionResult> MarkThreadRead(Guid otherUserId)
         {
@@ -96,8 +93,7 @@ namespace tunerate_api.Controllers
 
             foreach (var m in toMark) m.IsRead = true;
             await _db.SaveChangesAsync();
-
-            // powiadom oba konta o zmianie liczników (opcjonalnie)
+            
             var myAuth0 = me.Auth0Id;
             var recipient = await _db.Users.FindAsync(otherUserId);
 
@@ -123,8 +119,7 @@ namespace tunerate_api.Controllers
 
             return Ok(new { marked = toMark.Count });
         }
-
-        // POST: api/chat/send/{toUserId}
+        
         [HttpPost("send/{toUserId:guid}")]
         public async Task<IActionResult> SendMessage(Guid toUserId, [FromBody] SendMessageDto dto)
         {
@@ -145,8 +140,7 @@ namespace tunerate_api.Controllers
 
             _db.ChatMessages.Add(message);
             await _db.SaveChangesAsync();
-
-            // wysyłamy w czasie rzeczywistym - minimalny DTO (bez navigational cycles)
+            
             await _hub.Clients.Group(target.Auth0Id).SendAsync("ChatMessageReceived", new
             {
                 message.Id,
@@ -155,8 +149,7 @@ namespace tunerate_api.Controllers
                 message.Content,
                 message.SentAt
             });
-
-            // odśwież i wyślij liczniki nieodczytanych do odbiorcy
+            
             var recipientCounts = await _db.ChatMessages
                 .Where(m => m.ToUserId == toUserId && !m.IsRead)
                 .GroupBy(m => m.FromUserId)

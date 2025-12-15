@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using RestSharp;
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace tunerate_api.Controllers
 {
@@ -10,9 +11,12 @@ namespace tunerate_api.Controllers
     public class RecommendationsController : ControllerBase
     {
         private readonly RestClient _client;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _ttl = TimeSpan.FromSeconds(30);
 
-        public RecommendationsController(IConfiguration config)
+        public RecommendationsController(IConfiguration config, IMemoryCache cache)
         {
+            _cache = cache;
             var baseUrl = config.GetValue<string>("RecommenderService") ?? "http://localhost:8001/";
             var options = new RestClientOptions(baseUrl);
             _client = new RestClient(options);
@@ -56,6 +60,16 @@ namespace tunerate_api.Controllers
         {
             try
             {
+                var paramValues = request.Parameters.Any()
+                    ? string.Join("_", request.Parameters.Select(p => p.Value?.ToString() ?? ""))
+                    : "";
+                var key = $"reccache_{request.Resource}_{paramValues}";
+
+                if (_cache.TryGetValue<object>(key, out var cached))
+                {
+                    return Ok(cached);
+                }
+
                 var response = await _client.ExecuteAsync(request);
 
                 if (response.StatusCode != HttpStatusCode.OK)
@@ -75,6 +89,10 @@ namespace tunerate_api.Controllers
                 };
 
                 var json = JsonSerializer.Deserialize<object>(response.Content, options);
+
+                // cache successful deserialized response for a short time
+                _cache.Set(key, json, _ttl);
+
                 return Ok(json);
             }
             catch (Exception ex)

@@ -64,8 +64,7 @@ namespace tunerate_api.Controllers
 
             return Ok(outgoing);
         }
-
-        // POST: api/social/friends/request/{toUserId}
+        
         [HttpPost("friends/request/{toUserId:guid}")]
         public async Task<IActionResult> SendFriendRequest(Guid toUserId)
         {
@@ -90,8 +89,7 @@ namespace tunerate_api.Controllers
 
             _context.Friendships.Add(friendship);
             await _context.SaveChangesAsync();
-
-            // powiadomienie przez SignalR: wyślij auth0Id docelowego użytkownika
+            
             var target = await _context.Users.FindAsync(toUserId);
             if (target != null)
             {
@@ -105,8 +103,7 @@ namespace tunerate_api.Controllers
 
             return Ok(friendship);
         }
-
-        // POST: api/social/friends/accept/{friendshipId}
+        
         [HttpPost("friends/accept/{friendshipId:guid}")]
         public async Task<IActionResult> AcceptFriendRequest(Guid friendshipId)
         {
@@ -120,8 +117,7 @@ namespace tunerate_api.Controllers
 
             f.Status = FriendshipStatus.Accepted;
             await _context.SaveChangesAsync();
-
-            // powiadomienie do requestera
+            
             var requester = await _context.Users.FindAsync(f.RequesterId);
             if (requester != null)
             {
@@ -135,8 +131,7 @@ namespace tunerate_api.Controllers
 
             return Ok(f);
         }
-
-        // POST: api/social/friends/decline/{friendshipId}
+        
         [HttpPost("friends/decline/{friendshipId:guid}")]
         public async Task<IActionResult> DeclineFriendRequest(Guid friendshipId)
         {
@@ -153,8 +148,7 @@ namespace tunerate_api.Controllers
 
             return Ok(f);
         }
-
-        // GET: api/social/friends — lista znajomych (accepted)
+        
         [HttpGet("friends")]
         public async Task<IActionResult> GetFriends()
         {
@@ -179,8 +173,7 @@ namespace tunerate_api.Controllers
 
             return Ok(users);
         }
-
-        // GET: api/social/requests — zaproszenia (pending) adresowane do mnie
+        
         [HttpGet("requests")]
         public async Task<IActionResult> GetIncomingRequests()
         {
@@ -200,8 +193,7 @@ namespace tunerate_api.Controllers
 
             return Ok(requests);
         }
-
-        // POST: api/social/share/{toUserId}/{albumId}
+        
         [HttpPost("share/{toUserId:guid}/{albumId:guid}")]
         public async Task<IActionResult> ShareAlbum(Guid toUserId, Guid albumId)
         {
@@ -228,8 +220,7 @@ namespace tunerate_api.Controllers
 
             _context.AlbumShares.Add(share);
             await _context.SaveChangesAsync();
-
-            // przygotuj bezpieczny DTO/payload (tylko skalarne pola, brak referencji do encji EF)
+            
             var payload = new
             {
                 share.Id,
@@ -242,20 +233,16 @@ namespace tunerate_api.Controllers
                     album.Title,
                     album.CoverUrl,
                     album.ExternalId,
-                    // tylko nazwa artysty, nie cały obiekt Artist
                     album.Artist.Name,
                     album.ReleaseDate
                 }
             };
-
-            // push via SignalR - wysyłamy tylko payload (bez cykli)
+            
             await _hub.Clients.Group(target.Auth0Id).SendAsync("AlbumShareReceived", payload);
-
-            // zwróć DTO zamiast encji EF
+            
             return Ok(payload);
         }
-
-        // GET: api/social/shares — wszystkie otrzymane polecenia dla użytkownika
+        
         [HttpGet("shares")]
         public async Task<IActionResult> GetReceivedShares()
         {
@@ -288,8 +275,7 @@ namespace tunerate_api.Controllers
 
             return Ok(shares);
         }
-
-        // POST: api/social/shares/mark-read/{shareId}
+        
         [HttpPost("shares/mark-read/{shareId:guid}")]
         public async Task<IActionResult> MarkShareRead(Guid shareId)
         {
@@ -302,8 +288,7 @@ namespace tunerate_api.Controllers
 
             s.IsRead = true;
             await _context.SaveChangesAsync();
-
-            // zwracamy minimalny DTO, nie encję EF
+            
             var result = new
             {
                 s.Id,
@@ -315,45 +300,45 @@ namespace tunerate_api.Controllers
             return Ok(result);
         }
         
-        // GET: api/social/profile/{userId}
         [HttpGet("profile/{userId:guid}")]
         public async Task<IActionResult> GetUserProfile(Guid userId)
         {
             var user = await _context.Users
                 .Where(u => u.Id == userId)
+                .AsSplitQuery()
                 .Select(u => new
                 {
-                    u.Id,
-                    u.Nickname,
-                    u.Auth0Id,
-
-                    // dodane: status na podstawie serwisu obecności
-                    Status = _presence.IsOnline(u.Auth0Id) ? "Online" : "Offline",
-
-                    Reviews = _context.Reviews
+                    id = u.Id,
+                    nickname = u.Nickname,
+                    auth0Id = u.Auth0Id,
+                    status = _presence.IsOnline(u.Auth0Id) ? "Online" : "Offline",
+                    reviews = _context.Reviews
                         .Where(r => r.UserId == userId)
                         .OrderByDescending(r => r.CreatedAt)
                         .Take(20)
                         .Select(r => new
                         {
-                            r.Id,
-                            r.Score,
-                            r.Content,
-                            AlbumTitle = r.Album.Title,
-                            r.CreatedAt
+                            id = r.Id,
+                            score = r.Score,
+                            content = r.Content,
+                            albumId = r.Album.Id,
+                            albumTitle = r.Album.Title,
+                            albumArtist = r.Album.Artist.Name,
+                            albumCoverUrl = r.Album.CoverUrl,
+                            createdAt = r.CreatedAt
                         })
                         .ToList(),
-
-                    Albums = _context.UserAlbums
+                    albums = _context.UserAlbums
                         .Where(ua => ua.UserId == userId)
+                        .OrderByDescending(ua => ua.CreatedAt)
                         .Select(ua => new
                         {
-                            ua.Album.Id,
-                            ua.Album.Title,
-                            Artist = ua.Album.Artist.Name,
-                            ua.Album.CoverUrl,
-                            ua.Status,
-                            ua.CreatedAt
+                            id = ua.Album.Id,
+                            title = ua.Album.Title,
+                            artist = ua.Album.Artist.Name,
+                            coverUrl = ua.Album.CoverUrl,
+                            status = ua.Status,
+                            createdAt = ua.CreatedAt
                         })
                         .ToList()
                 })
@@ -363,8 +348,6 @@ namespace tunerate_api.Controllers
             return Ok(user);
         }
         
-
-        // GET: api/social/search?query=...&limit=20
         [HttpGet("search")]
         public async Task<IActionResult> SearchUsers([FromQuery] string query = "", [FromQuery] int limit = 20)
         {
@@ -385,8 +368,7 @@ namespace tunerate_api.Controllers
 
             return Ok(results);
         }
-
-        // DELETE: api/social/friends/{friendId}
+        
         [HttpDelete("friends/{friendId:guid}")]
         public async Task<IActionResult> RemoveFriend(Guid friendId)
         {
@@ -404,8 +386,7 @@ namespace tunerate_api.Controllers
 
             _context.Friendships.Remove(friendship);
             await _context.SaveChangesAsync();
-
-            // opcjonalne powiadomienie drugiej strony
+            
             var other = await _context.Users.FindAsync(friendId);
             if (other != null)
             {
@@ -418,8 +399,7 @@ namespace tunerate_api.Controllers
 
             return NoContent();
         }
-
-        // DELETE: api/social/requests/{friendshipId} - wycofanie wysłanego zaproszenia (requester)
+        
         [HttpDelete("requests/{friendshipId:guid}")]
         public async Task<IActionResult> WithdrawOutgoingRequest(Guid friendshipId)
         {
@@ -428,19 +408,15 @@ namespace tunerate_api.Controllers
 
             var f = await _context.Friendships.FindAsync(friendshipId);
             if (f == null) return NotFound();
-
-            // tylko requester może wycofać swoje wysłane zaproszenie
+            
             if (f.RequesterId != current.Id) return Forbid("Tylko nadawca może wycofać wysłane zaproszenie.");
-
-            // tylko oczekujące zaproszenia można wycofać
+            
             if (f.Status != FriendshipStatus.Pending) 
                 return BadRequest("Można wycofać tylko oczekujące zaproszenie.");
-
-            // Usuwamy wpis zamiast ustawiać status
+            
             _context.Friendships.Remove(f);
             await _context.SaveChangesAsync();
-
-            // opcjonalne powiadomienie adresata o wycofaniu (jeśli istnieje)
+            
             var other = await _context.Users.FindAsync(f.AddresseeId);
             if (other != null)
             {

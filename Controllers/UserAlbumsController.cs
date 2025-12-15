@@ -64,9 +64,8 @@ namespace tunerate_api.Controllers
             return Ok(new { message = result.Message });
         }
         
-        // GET: api/useralbums/{userId}
         [HttpGet("{userId:guid}")]
-        [AllowAnonymous] // ❗ jeśli ma być publiczne dla znajomych — lub usuń gdy wymaga tokena
+        [AllowAnonymous]
         public async Task<IActionResult> GetAlbumsOfUser(Guid userId)
         {
             var albums = await _albumService.GetAlbumsOfUserAsync(userId);
