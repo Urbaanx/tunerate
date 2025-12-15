@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using tunerate_api.Data;
 using tunerate_api.Models;
-using tunerate_api.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace tunerate_api.Hubs;
 
@@ -13,13 +12,11 @@ public class SocialHub : Hub
 {
     private readonly AppDbContext _db;
     private readonly ILogger<SocialHub> _logger;
-    private readonly IPresenceService _presence;
 
-    public SocialHub(AppDbContext db, ILogger<SocialHub> logger, IPresenceService presence)
+    public SocialHub(AppDbContext db, ILogger<SocialHub> logger)
     {
         _db = db;
         _logger = logger;
-        _presence = presence;
     }
 
     // Helper: zwraca Auth0Id (NameIdentifier / sub) lub null
@@ -33,37 +30,6 @@ public class SocialHub : Hub
         return string.IsNullOrEmpty(v) ? null : v;
     }
 
-    private async Task NotifyFriendsPresenceAsync(string auth0Id, Guid userId, bool isOnline)
-    {
-        // pobierz auth0Id znajomych (accepted)
-        var friendsAuth0 = await _db.Friendships
-            .Where(f => f.Status == FriendshipStatus.Accepted &&
-                        (f.RequesterId == userId || f.AddresseeId == userId))
-            .Select(f => f.RequesterId == userId ? f.Addressee.Auth0Id : f.Requester.Auth0Id)
-            .Where(a => !string.IsNullOrEmpty(a))
-            .ToListAsync();
-
-        var payload = new
-        {
-            UserId = userId,
-            Auth0Id = auth0Id,
-            IsOnline = isOnline,
-            Timestamp = DateTime.UtcNow
-        };
-
-        foreach (var friendAuth0 in friendsAuth0.Distinct())
-        {
-            try
-            {
-                await Clients.Group(friendAuth0).SendAsync("FriendPresenceChanged", payload);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send presence change to {friend}", friendAuth0);
-            }
-        }
-    }
-
     public override async Task OnConnectedAsync()
     {
         var auth0Id = GetAuth0Id();
@@ -72,19 +38,6 @@ public class SocialHub : Hub
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, auth0Id);
             _logger.LogInformation("Added connection {cid} to group {aid}", Context.ConnectionId, auth0Id);
-
-            var wasOnlineBefore = _presence.IsOnline(auth0Id);
-            _presence.AddConnection(auth0Id, Context.ConnectionId);
-
-            if (!wasOnlineBefore)
-            {
-                // find local user id
-                var user = await _db.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-                if (user != null)
-                {
-                    await NotifyFriendsPresenceAsync(auth0Id, user.Id, true);
-                }
-            }
         }
         await base.OnConnectedAsync();
     }
@@ -95,17 +48,7 @@ public class SocialHub : Hub
         _logger.LogInformation("OnDisconnectedAsync connectionId={cid} auth0Id={aid}", Context.ConnectionId, auth0Id);
         if (!string.IsNullOrEmpty(auth0Id))
         {
-            var becameOffline = _presence.RemoveConnection(auth0Id, Context.ConnectionId);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, auth0Id);
-
-            if (becameOffline)
-            {
-                var user = await _db.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-                if (user != null)
-                {
-                    await NotifyFriendsPresenceAsync(auth0Id, user.Id, false);
-                }
-            }
         }
         await base.OnDisconnectedAsync(exception);
     }
@@ -123,19 +66,6 @@ public class SocialHub : Hub
 
         await Groups.AddToGroupAsync(Context.ConnectionId, auth0Id);
         _logger.LogInformation("RegisterConnection: added connection {cid} to group {aid}", Context.ConnectionId, auth0Id);
-
-        var wasOnlineBefore = _presence.IsOnline(auth0Id);
-        _presence.AddConnection(auth0Id, Context.ConnectionId);
-
-        if (!wasOnlineBefore)
-        {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
-            if (user != null)
-            {
-                await NotifyFriendsPresenceAsync(auth0Id, user.Id, true);
-            }
-        }
-
         await Clients.Caller.SendAsync("Registered", auth0Id);
     }
 

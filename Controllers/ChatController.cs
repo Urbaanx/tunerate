@@ -143,11 +143,11 @@ namespace tunerate_api.Controllers
             
             await _hub.Clients.Group(target.Auth0Id).SendAsync("ChatMessageReceived", new
             {
-                message.Id,
+                Id = message.Id,
                 FromUser = new { from.Id, from.Nickname, from.Auth0Id },
                 ToUserId = toUserId,
-                message.Content,
-                message.SentAt
+                Content = message.Content,
+                SentAt = message.SentAt
             });
             
             var recipientCounts = await _db.ChatMessages
