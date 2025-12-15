@@ -15,6 +15,28 @@ const TrackPlayer: React.FC<Props> = ({ url }) => {
     }
   }, [volume, url]);
 
+  useEffect(() => {
+    const onExternalPlay = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const source: HTMLAudioElement | undefined = detail?.source;
+      if (audioRef.current && source && source !== audioRef.current) {
+        audioRef.current.pause();
+        setPlaying(false);
+      }
+    };
+
+    window.addEventListener(
+      "tunerate:trackplay",
+      onExternalPlay as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "tunerate:trackplay",
+        onExternalPlay as EventListener
+      );
+    };
+  }, []);
+
   const togglePlay = () => {
     if (!audioRef.current) return;
 
@@ -23,8 +45,17 @@ const TrackPlayer: React.FC<Props> = ({ url }) => {
       setPlaying(false);
     } else {
       audioRef.current.volume = volume;
-      audioRef.current.play();
+      audioRef.current.play().catch(() => {
+        // ignore playback errors (autoplay policies etc.)
+      });
       setPlaying(true);
+
+      // Powiadom pozostałe odtwarzacze, żeby się zatrzymały
+      window.dispatchEvent(
+        new CustomEvent("tunerate:trackplay", {
+          detail: { source: audioRef.current },
+        })
+      );
 
       audioRef.current.onended = () => setPlaying(false);
     }

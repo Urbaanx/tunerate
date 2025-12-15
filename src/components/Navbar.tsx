@@ -12,11 +12,13 @@ import {
   Info,
   Menu,
   X,
+  Shield, // <-- nowy import
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useGetApiSocialShares,
   useGetApiSocialRequests,
+  useGetApiUsersByAuth0idAuth0Id,
 } from "../api/endpoints/tunerateApi";
 import { useGetApiChatUnreadCounts } from "../api/endpoints/tunerateApi";
 import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
@@ -33,34 +35,104 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false); // <-- stan admina
   const queryClient = useQueryClient();
   const [hubConnection, setHubConnection] =
     React.useState<HubConnection | null>(null);
 
+  const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
+
   useEffect(() => {
     if (!isAuthenticated) {
       setToken(null);
+      setIsAdmin(false);
       return;
     }
     let mounted = true;
-    getAccessTokenSilently()
+    getAccessTokenSilently({
+      authorizationParams: {
+        audience: audience,
+        scope: "openid profile email",
+      },
+    })
       .then((t) => {
         if (mounted) setToken(t);
       })
       .catch(() => {
-        if (mounted) setToken(null);
+        if (mounted) {
+          setToken(null);
+          setIsAdmin(false);
+        }
       });
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated, getAccessTokenSilently]);
+  }, [isAuthenticated, getAccessTokenSilently, audience]);
+
+  // parse JWT helper (base64url safe)
+  const parseJwt = (jwt: string | null) => {
+    if (!jwt) return null;
+    try {
+      const payload = jwt.split(".")[1];
+      const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map(function (c) {
+            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+          })
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      setIsAdmin(false);
+      return;
+    }
+    const payload = parseJwt(token);
+    if (!payload) {
+      setIsAdmin(false);
+      return;
+    }
+
+    // Auth0: permissions może być tablicą lub stringiem; scope może zawierać uprawnienia
+    const perms = payload.permissions ?? payload.permission ?? null;
+    const scope = payload.scope ?? null;
+    const customRoles =
+      payload["https://tunerate/roles"] ??
+      payload["https://tunerate.com/roles"];
+
+    let adminFound = false;
+
+    if (Array.isArray(perms)) {
+      adminFound = perms.includes("admin");
+    } else if (typeof perms === "string") {
+      adminFound = perms.split(" ").includes("admin");
+    }
+
+    if (!adminFound && typeof scope === "string") {
+      adminFound = scope.split(" ").includes("admin");
+    }
+
+    if (!adminFound && Array.isArray(customRoles)) {
+      adminFound = customRoles.includes("admin");
+    } else if (!adminFound && typeof customRoles === "string") {
+      adminFound = customRoles.split(" ").includes("admin");
+    }
+
+    setIsAdmin(adminFound);
+  }, [token]);
 
   const requestOptions = token
     ? {
         request: { headers: { Authorization: `Bearer ${token}` } },
         query: {
           enabled: true,
-          // odświeżaj co 5 sekund, działa także gdy aplikacja w tle
           refetchInterval: 5000,
           refetchIntervalInBackground: true,
         },
@@ -92,8 +164,26 @@ const Navbar: React.FC = () => {
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
-  const initials = user?.name
-    ? user.name
+  // === Fetch local DB user by Auth0 id (so we can show DB nickname) ===
+  const { data: localUser, refetch: refetchLocalUser } =
+    useGetApiUsersByAuth0idAuth0Id<any, unknown>(user?.sub ?? "");
+
+  // Determine whether this is an Auth0-backed user (same logic as DashboardPage)
+  const isDbUser =
+    !!user &&
+    (user.sub?.startsWith?.("auth0|") ||
+      user?.identities?.[0]?.provider === "auth0");
+
+  const displayName = isDbUser
+    ? localUser?.nickname ?? user?.username ?? user?.nickname ?? user?.email
+    : user?.name ?? user?.email;
+
+  const initialsSource = isDbUser
+    ? localUser?.nickname ?? user?.name ?? user?.email
+    : user?.name ?? user?.email;
+
+  const initials = initialsSource
+    ? initialsSource
         .split(" ")
         .map((s: string) => s[0])
         .slice(0, 2)
@@ -157,7 +247,6 @@ const Navbar: React.FC = () => {
     const presenceHandler = (payload: any) => {
       console.debug("Navbar: FriendPresenceChanged", payload);
       try {
-        // try to invalidate queries related to social/chat so components refetch
         queryClient.invalidateQueries({
           predicate: (q) => {
             const key = Array.isArray(q.queryKey)
@@ -167,7 +256,6 @@ const Navbar: React.FC = () => {
           },
         });
       } catch (e) {
-        // fallback: invalidate all
         queryClient.invalidateQueries();
       }
     };
@@ -213,6 +301,10 @@ const Navbar: React.FC = () => {
           )}
           {isAuthenticated && (
             <NavItem to="/friends" icon={Users} label="Znajomi" />
+          )}
+
+          {isAdmin && (
+            <NavItem to="/admin" icon={Shield} label="Administracja" />
           )}
 
           {isAuthenticated ? (
@@ -262,14 +354,10 @@ const Navbar: React.FC = () => {
             ) : (
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-3 bg-black/20 px-3 py-1 rounded-full">
-                  {/*
-                    If Auth0 user object exposes picture (user.picture) show it,
-                    otherwise fallback to initials circle (existing behavior).
-                  */}
                   {user?.picture ? (
                     <img
                       src={user.picture}
-                      alt={user?.name ?? user?.email ?? "User avatar"}
+                      alt={displayName ?? "User avatar"}
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
@@ -279,13 +367,10 @@ const Navbar: React.FC = () => {
                   )}
                   <div className="text-sm text-left">
                     <div className="text-xs text-gray-300">Witaj,</div>
-                    <div className="font-medium text-white">
-                      {user?.name ?? user?.email}
-                    </div>
+                    <div className="font-medium text-white">{displayName}</div>
                   </div>
                 </div>
 
-                {/* Logout button visible on desktop */}
                 <button
                   onClick={handleLogout}
                   className="ml-2 px-3 py-2 bg-red-600 text-sm font-medium rounded-lg hover:bg-red-700 transition"
@@ -359,6 +444,17 @@ const Navbar: React.FC = () => {
                 <Users className="w-4 h-4" /> Znajomi
               </Link>
             )}
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={toggleMenu}
+                className="flex items-center gap-2 text-gray-100 hover:text-white"
+              >
+                <Shield className="w-4 h-4" /> Administracja
+              </Link>
+            )}
+
             {isAuthenticated && (
               <Link
                 to="/notifications"

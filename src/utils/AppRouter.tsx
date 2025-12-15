@@ -7,6 +7,7 @@ import CollectionPage from "../pages/CollectionPage";
 import DashboardPage from "../pages/DashboardPage";
 import AlbumDetailsPage from "../pages/AlbumDetailsPage";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import AuthGuard from "../components/AuthGuard";
 import AboutPage from "../pages/AboutPage";
 import PrivacyPage from "../pages/PrivacyPage";
@@ -17,6 +18,7 @@ import FriendProfilePage from "../pages/FriendProfilePage";
 import ChatPage from "../pages/ChatPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import FriendsSearchPage from "../pages/FriendsSearchPage";
+import AdminPage from "../pages/AdminPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,7 +125,17 @@ const AppRouter: React.FC = () => {
                 </AuthGuard>
               }
             />
+            <Route
+              path="/admin"
+              element={
+                <AuthGuard>
+                  <AdminPage />
+                </AuthGuard>
+              }
+            />
           </Routes>
+
+          <Footer />
         </div>
       </Router>
     </QueryClientProvider>

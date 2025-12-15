@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,7 @@ import {
   usePostApiSocialFriendsRequestToUserId,
   useGetApiSocialRequestsOutgoing,
   useDeleteApiSocialRequestsFriendshipId,
+  useGetApiSocialFriends,
 } from "../api/endpoints/tunerateApi";
 
 export default function FriendsSearchPage() {
@@ -24,6 +25,13 @@ export default function FriendsSearchPage() {
       .catch(() => setToken(null));
   }, [isAuthenticated, getAccessTokenSilently]);
 
+  const requestOptions = token
+    ? {
+        request: { headers: { Authorization: `Bearer ${token}` } },
+        query: { enabled: true },
+      }
+    : { query: { enabled: false } };
+
   // Orval search (disabled by default) — will be refetched on doSearch
   const searchQuery = useGetApiSocialSearch<any, unknown>(
     { query: query.trim(), limit: 40 },
@@ -37,6 +45,31 @@ export default function FriendsSearchPage() {
 
   // outgoing requests (to know which users already received an invitation)
   const outgoingQuery = useGetApiSocialRequestsOutgoing<any, unknown>();
+
+  // friends list (to know which users are already friends)
+  const { data: friendsData, refetch: refetchFriends } = useGetApiSocialFriends<
+    any,
+    unknown
+  >(requestOptions);
+
+  useEffect(() => {
+    if (token) refetchFriends();
+  }, [token, refetchFriends]);
+
+  // set of friend ids for quick lookup
+  const friendsSet = useMemo(() => {
+    const set = new Set<string>();
+    const list = Array.isArray(friendsData)
+      ? friendsData
+      : friendsData?.items ?? [];
+    if (Array.isArray(list)) {
+      list.forEach((it: any) => {
+        const id = it.id ?? it.Id;
+        if (id) set.add(String(id));
+      });
+    }
+    return set;
+  }, [friendsData]);
 
   // map: receiverId -> friendshipId (server returns Receiver)
   const outgoingMap = useMemo(() => {
@@ -61,11 +94,12 @@ export default function FriendsSearchPage() {
       onSuccess: () => {
         searchQuery.refetch();
         outgoingQuery.refetch();
+        refetchFriends();
       },
     },
   });
 
-  // DELETE mutation (withdraw outgoing request) -- wykorzystuje hook wygenerowany przez Orval
+  // DELETE mutation (withdraw outgoing request)
   const withdrawMutation = useDeleteApiSocialRequestsFriendshipId<any, unknown>(
     {
       request: token
@@ -75,6 +109,7 @@ export default function FriendsSearchPage() {
         onSuccess: () => {
           searchQuery.refetch();
           outgoingQuery.refetch();
+          refetchFriends();
         },
       },
     }
@@ -85,6 +120,7 @@ export default function FriendsSearchPage() {
     try {
       await searchQuery.refetch();
       outgoingQuery.refetch();
+      refetchFriends();
     } catch (err) {
       console.error("Search error", err);
     }
@@ -172,6 +208,8 @@ export default function FriendsSearchPage() {
               const alreadyRequested = uid
                 ? outgoingMap.has(String(uid))
                 : false;
+              const alreadyFriend = uid ? friendsSet.has(String(uid)) : false;
+
               return (
                 <div
                   key={uid}
@@ -190,7 +228,7 @@ export default function FriendsSearchPage() {
                       Profil
                     </button>
 
-                    {!alreadyRequested ? (
+                    {!alreadyRequested && !alreadyFriend ? (
                       <button
                         onClick={() => sendRequest(String(uid))}
                         disabled={sendingTo === String(uid)}
@@ -199,6 +237,13 @@ export default function FriendsSearchPage() {
                         {sendingTo === String(uid)
                           ? "Wysyłanie..."
                           : "Wyślij zaproszenie"}
+                      </button>
+                    ) : alreadyFriend ? (
+                      <button
+                        className="px-3 py-1 bg-gray-600 rounded text-sm cursor-default"
+                        disabled
+                      >
+                        Znajomy
                       </button>
                     ) : (
                       <div className="flex gap-2 items-center">

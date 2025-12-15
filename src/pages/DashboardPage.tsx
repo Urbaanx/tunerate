@@ -5,6 +5,8 @@ import {
   useGetApiRecommendationsUserId,
   useGetApiUsersByAuth0idAuth0Id,
   usePostApiUsersSync,
+  usePutApiUsersNickname,
+  useGetApiUsersStats,
 } from "../api/endpoints/tunerateApi";
 import AlbumCard from "../components/AlbumCard";
 import { Loader2 } from "lucide-react";
@@ -68,12 +70,8 @@ const DashboardPage: React.FC = () => {
     });
   }, [isAuthenticated, token, synced, postUsersSync]);
 
-  const { data: localUser } = useGetApiUsersByAuth0idAuth0Id<any, unknown>(
-    user?.sub ?? ""
-  );
-
-  //console.log("Local user data:", localUser);
-  //console.log("localUser id:", localUser?.id);
+  const { data: localUser, refetch: refetchLocalUser } =
+    useGetApiUsersByAuth0idAuth0Id<any, unknown>(user?.sub ?? "");
 
   // === Pobranie kolekcji użytkownika ===
   const {
@@ -112,6 +110,51 @@ const DashboardPage: React.FC = () => {
     ? localUser?.nickname ?? user?.username ?? user?.nickname ?? user?.email
     : user?.name ?? user?.email;
 
+  // === Nickname change modal state & hook ===
+  const putNicknameMutation = usePutApiUsersNickname();
+  const putNickname = putNicknameMutation.mutate;
+
+  const isUpdating = (putNicknameMutation as any).isLoading ?? false;
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [newNickname, setNewNickname] = useState<string>("");
+
+  useEffect(() => {
+    if (showNicknameModal) {
+      setNewNickname(localUser?.nickname ?? "");
+    }
+  }, [showNicknameModal, localUser?.nickname]);
+
+  const openNicknameModal = () => {
+    setNewNickname(localUser?.nickname ?? "");
+    setShowNicknameModal(true);
+  };
+
+  const handleSaveNickname = (e?: React.FormEvent) => {
+    e?.preventDefault?.();
+    const trimmed = (newNickname ?? "").trim();
+    if (!trimmed) return;
+    if (trimmed === localUser?.nickname) {
+      setShowNicknameModal(false);
+      return;
+    }
+
+    putNickname(
+      { data: { nickname: trimmed } },
+      {
+        onSuccess: () => {
+          setShowNicknameModal(false);
+          // refresh local user so UI reflects change
+          refetchLocalUser?.();
+        },
+        onError: (err) => {
+          console.error("Failed to update nickname:", err);
+          // still close or keep open depending on UX preference; here we close
+          setShowNicknameModal(false);
+        },
+      }
+    );
+  };
+
   const recentAlbums = Array.isArray(userAlbums) ? userAlbums.slice(0, 6) : [];
   const albumCount = Array.isArray(userAlbums) ? userAlbums.length : 0;
   const lastAddedDate =
@@ -122,6 +165,17 @@ const DashboardPage: React.FC = () => {
           )
         ).toLocaleDateString("pl-PL")
       : null;
+
+  // === user stats hook ===
+  const { data: userStats, isLoading: isStatsLoading } = useGetApiUsersStats<
+    any,
+    unknown
+  >({
+    query: { enabled: !!token },
+    request: token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : undefined,
+  });
 
   if (!isAuthenticated) {
     return (
@@ -141,6 +195,13 @@ const DashboardPage: React.FC = () => {
     ? recommendations!.recommendations
     : [];
 
+  // helper to read either PascalCase or camelCase
+  const getStat = (pascal?: any, camel?: any, fallback?: any) => {
+    if (pascal !== undefined && pascal !== null) return pascal;
+    if (camel !== undefined && camel !== null) return camel;
+    return fallback;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-900 via-indigo-900 to-black text-white p-6">
       {/* === HEADER === */}
@@ -153,7 +214,16 @@ const DashboardPage: React.FC = () => {
           />
         )}
         <div>
-          <h1 className="text-4xl font-extrabold">Twój panel</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-extrabold">Twój panel</h1>
+            <button
+              onClick={openNicknameModal}
+              className="text-sm px-3 py-1 bg-white/10 hover:bg-white/20 rounded-md transition"
+              title="Zmień nazwę użytkownika"
+            >
+              Zmień nazwę
+            </button>
+          </div>
           <p className="text-gray-300 mt-1">Witaj, {displayName}! 👋</p>
           {albumCount > 0 && (
             <p className="text-sm text-gray-400 mt-1">
@@ -172,6 +242,57 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
       </header>
+
+      {/* Nickname modal */}
+      {showNicknameModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowNicknameModal(false)}
+          />
+          <form
+            onSubmit={handleSaveNickname}
+            className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-6 w-full max-w-md z-50"
+          >
+            <h3 className="text-lg font-semibold mb-2 text-white">
+              Zmień nazwę użytkownika
+            </h3>
+            <label className="block text-sm text-gray-300 mb-2">
+              Nowa nazwa
+            </label>
+            <input
+              autoFocus
+              value={newNickname}
+              onChange={(e) => setNewNickname(e.target.value)}
+              className="w-full p-2 rounded bg-white/5 border border-white/10 text-white focus:outline-none"
+              placeholder="Wpisz nową nazwę"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNicknameModal(false)}
+                className="px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-white"
+                disabled={isUpdating}
+              >
+                Anuluj
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+                disabled={isUpdating || !(newNickname ?? "").trim()}
+              >
+                {isUpdating ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Zapisz...
+                  </span>
+                ) : (
+                  "Zapisz"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* === NAVIGATION CARDS === */}
       <section className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-10">
@@ -194,11 +315,63 @@ const DashboardPage: React.FC = () => {
           </p>
           <p className="text-sm text-gray-400">🎧 {albumCount} albumów</p>
         </a>
+
+        {/* === STATISTICS CARD === */}
         <div className="rounded-xl bg-black/40 border border-white/10 p-6">
-          <h2 className="text-2xl font-semibold mb-2">Statystyki (wkrótce)</h2>
-          <p className="text-gray-300">
-            Podsumowanie ocen, ulubionych wykonawców i rekomendacji.
+          <h2 className="text-2xl font-semibold mb-2">Twoje statystyki</h2>
+          <p className="text-gray-300 mb-4">
+            Szybkie podsumowanie Twoich aktywności.
           </p>
+
+          <div className="grid grid-cols-1 gap-3">
+            <div className="bg-white/5 p-3 rounded flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-300">Albumy w kolekcji</div>
+                <div className="text-xl font-bold">
+                  {isStatsLoading
+                    ? "..."
+                    : getStat(
+                        userStats?.AlbumsCount,
+                        userStats?.albumsCount,
+                        albumCount ?? 0
+                      )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 p-3 rounded flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-300">Twoje recenzje</div>
+                <div className="text-xl font-bold">
+                  {isStatsLoading
+                    ? "..."
+                    : getStat(
+                        userStats?.ReviewsCount,
+                        userStats?.reviewsCount,
+                        "—"
+                      )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 p-3 rounded flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-300">Średnia ocena</div>
+                <div className="text-xl font-bold">
+                  {isStatsLoading
+                    ? "..."
+                    : (() => {
+                        const avg = getStat(
+                          userStats?.AverageScore,
+                          userStats?.averageScore,
+                          null
+                        );
+                        return avg != null ? Number(avg).toFixed(1) : "—";
+                      })()}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

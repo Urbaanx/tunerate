@@ -78,13 +78,18 @@ const AlbumDetailsPage: React.FC = () => {
       .catch(() => setToken(null));
   }, [isAuthenticated, getAccessTokenSilently]);
 
+  const albumQueryOptions = token
+    ? {
+        request: { headers: { Authorization: `Bearer ${token}` } },
+        query: { enabled: !!id },
+      }
+    : { query: { enabled: false } };
+
   const {
     data: album,
     isLoading: albumLoading,
     isError: albumError,
-  } = useGetApiAlbumsId<any, unknown>(id!, {
-    query: { enabled: !!id },
-  });
+  } = useGetApiAlbumsId<any, unknown>(id!, albumQueryOptions);
 
   const { data: userAlbums, refetch: refetchUserAlbums } = useGetApiUserAlbums<
     any,
@@ -92,6 +97,13 @@ const AlbumDetailsPage: React.FC = () => {
   >({
     query: { enabled: !!token },
   });
+
+  const reviewsQueryOptions = token
+    ? {
+        request: { headers: { Authorization: `Bearer ${token}` } },
+        query: { enabled: !!id, queryKey: ["albumReviews", id, page, sort] },
+      }
+    : { query: { enabled: false } };
 
   const {
     data: reviewsResponse,
@@ -101,9 +113,7 @@ const AlbumDetailsPage: React.FC = () => {
   } = useGetApiReviewsAlbumId<any, unknown>(
     id!,
     { page, pageSize, sort },
-    {
-      query: { enabled: !!id, queryKey: ["albumReviews", id, page, sort] },
-    }
+    reviewsQueryOptions
   );
 
   const { data: recommendations } = useGetApiRecommendationsAlbumAlbumId<

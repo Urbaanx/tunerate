@@ -18,6 +18,20 @@ interface AlbumCardProps {
   onAddToCollection?: (album: Album) => void;
 }
 
+const formatDate = (dateStr?: string): string | null => {
+  if (!dateStr) return null;
+  const dateOnly = dateStr.split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return dateOnly;
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  return dateOnly || null;
+};
+
 const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth0(); // don't redirect here
@@ -78,6 +92,8 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
     }
   };
 
+  const formattedDate = formatDate(album.releaseDate);
+
   return (
     <div
       onClick={handleCardClick}
@@ -101,9 +117,9 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
         <div>
           <h3 className="text-lg font-semibold text-white">{album.title}</h3>
           <p className="text-sm text-gray-400">{album.artist}</p>
-          {album.releaseDate && (
+          {formattedDate && (
             <p className="text-xs text-gray-500 mt-1">
-              Data wydania: {album.releaseDate}
+              Data wydania: {formattedDate}
             </p>
           )}
         </div>

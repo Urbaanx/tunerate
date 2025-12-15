@@ -4,6 +4,28 @@
  * tunerate-api
  * OpenAPI spec version: 1.0
  */
+export interface Album {
+  id?: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  externalId?: string | null;
+  releaseDate?: string;
+  /** @nullable */
+  coverUrl?: string | null;
+  createdAt?: string;
+  artistId?: string;
+  artist: Artist;
+  /** @nullable */
+  averageRating?: number | null;
+  /** @nullable */
+  reviews?: Review[] | null;
+  /** @nullable */
+  albumTags?: AlbumTag[] | null;
+  /** @nullable */
+  userAlbums?: UserAlbum[] | null;
+}
+
 export interface AlbumDto {
   /** @nullable */
   title?: string | null;
@@ -18,16 +40,216 @@ export interface AlbumDto {
   coverUrl?: string | null;
 }
 
+export interface AlbumShare {
+  id?: string;
+  fromUserId?: string;
+  toUserId?: string;
+  albumId?: string;
+  isRead?: boolean;
+  createdAt?: string;
+  fromUser?: User;
+  toUser?: User;
+  album?: Album;
+}
+
+export interface AlbumTag {
+  albumId?: string;
+  album?: Album;
+  tagId?: string;
+  tag?: Tag;
+}
+
+export interface Artist {
+  id?: string;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  externalId?: string | null;
+  /** @nullable */
+  albums?: Album[] | null;
+}
+
+export interface ChangeNicknameRequest {
+  /**
+   * @minLength 1
+   * @maxLength 50
+   */
+  nickname: string;
+}
+
+export interface ChatMessage {
+  id?: string;
+  fromUserId?: string;
+  toUserId?: string;
+  /** @nullable */
+  content?: string | null;
+  sentAt?: string;
+  isRead?: boolean;
+  fromUser?: User;
+  toUser?: User;
+}
+
+export interface Friendship {
+  id?: string;
+  requesterId?: string;
+  addresseeId?: string;
+  status?: FriendshipStatus;
+  createdAt?: string;
+  requester?: User;
+  addressee?: User;
+}
+
+export type FriendshipStatus = typeof FriendshipStatus[keyof typeof FriendshipStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const FriendshipStatus = {
+  NUMBER_0: 0,
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export interface Review {
+  id?: string;
+  /** @nullable */
+  content?: string | null;
+  score?: number;
+  createdAt?: string;
+  userId?: string;
+  user?: User;
+  albumId?: string;
+  album?: Album;
+}
+
 export interface ReviewDto {
   /** @nullable */
   content?: string | null;
   score?: number;
 }
 
+export interface RoleChangeRequest {
+  /** @nullable */
+  roleName?: string | null;
+}
+
 export interface SendMessageDto {
   /** @nullable */
   content?: string | null;
 }
+
+export interface Tag {
+  id?: string;
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  name: string;
+  /** @nullable */
+  albumTags?: AlbumTag[] | null;
+}
+
+export interface User {
+  id?: string;
+  /** @nullable */
+  auth0Id?: string | null;
+  /** @nullable */
+  nickname?: string | null;
+  createdAt?: string;
+  /** @nullable */
+  reviews?: Review[] | null;
+  /** @nullable */
+  userAlbums?: UserAlbum[] | null;
+}
+
+export interface UserAlbum {
+  userId?: string;
+  user?: User;
+  albumId?: string;
+  album?: Album;
+  /** @nullable */
+  status?: string | null;
+  createdAt?: string;
+}
+
+export type GetApiAdminUsersParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminArtistsParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminAlbumsParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminTagsParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminAlbumtagsParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminReviewsParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminUseralbumsParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminFriendshipsParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminAlbumsharesParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
+
+export type GetApiAdminChatmessagesParams = {
+page?: number;
+pageSize?: number;
+sortBy?: string;
+sortDir?: string;
+q?: string;
+};
 
 export type GetApiAlbumsParams = {
 page?: number;

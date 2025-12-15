@@ -1,5 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import FriendListItem from "../components/FriendListItem";
 import AlbumCard from "../components/AlbumCard";
@@ -77,29 +77,101 @@ export default function FriendProfilePage() {
     );
   }
 
-  // normalize shapes (handle PascalCase / camelCase)
   const normalizedProfile = profile ?? {};
-  const reviews = normalizedProfile.reviews ?? normalizedProfile.Reviews ?? [];
-  const favoriteAlbums =
+  const rawReviews =
+    normalizedProfile.reviews ?? normalizedProfile.Reviews ?? [];
+  const rawFavoriteAlbums =
     normalizedProfile.favoriteAlbums ?? normalizedProfile.FavoriteAlbums ?? [];
-  const albumsList = Array.isArray(userAlbums)
+  const rawAlbumsList = Array.isArray(userAlbums)
     ? userAlbums
     : userAlbums?.items ?? [];
 
-  // prepare friend object for header so status/avatar are passed to FriendListItem
   const friendForHeader = {
     id: normalizedProfile.id ?? normalizedProfile.Id,
     nickname:
       normalizedProfile.nickname ?? normalizedProfile.Nickname ?? "Nieznany",
-    // status may come as status/Status from API (if not present FriendListItem will fallback to "Offline")
     status: normalizedProfile.status ?? normalizedProfile.Status,
-    // avatar: prefer common fields returned by backend/auth0
     avatarUrl:
       normalizedProfile.picture ??
       normalizedProfile.Picture ??
       normalizedProfile.avatarUrl ??
       normalizedProfile.AvatarUrl,
   };
+
+  // Normalizacja albumów: zwróć obiekt pasujący do AlbumCard (camelCase)
+  const albumsList = useMemo(() => {
+    if (!rawAlbumsList || !Array.isArray(rawAlbumsList)) return [];
+    return rawAlbumsList.map((ua: any) => {
+      const a = ua.album ?? ua.Album ?? ua;
+      return {
+        id:
+          ua.id ??
+          ua.Id ??
+          a?.id ??
+          a?.Id ??
+          ua.albumId ??
+          ua.AlbumId ??
+          a?.albumId ??
+          a?.AlbumId,
+        title:
+          ua.title ??
+          ua.Title ??
+          a?.title ??
+          a?.Title ??
+          a?.albumTitle ??
+          a?.AlbumTitle ??
+          "",
+        artist:
+          ua.artist ??
+          ua.Artist ??
+          a?.artist ??
+          a?.Artist ??
+          (a?.Artist ? a.Artist.Name ?? a.Artist.name : null) ??
+          "",
+        coverUrl:
+          ua.coverUrl ??
+          ua.CoverUrl ??
+          a?.coverUrl ??
+          a?.CoverUrl ??
+          a?.albumCoverUrl ??
+          a?.AlbumCoverUrl ??
+          a?.CoverURL ??
+          "",
+        releaseDate:
+          ua.releaseDate ??
+          ua.ReleaseDate ??
+          a?.releaseDate ??
+          a?.ReleaseDate ??
+          null,
+      };
+    });
+  }, [rawAlbumsList]);
+
+  // Normalizacja recenzji
+  const reviews = useMemo(() => {
+    if (!rawReviews || !Array.isArray(rawReviews)) return [];
+    return rawReviews.map((r: any) => {
+      return {
+        id: r.id ?? r.Id,
+        score: r.score ?? r.Score,
+        content: r.content ?? r.Content,
+        albumTitle:
+          r.albumTitle ??
+          r.AlbumTitle ??
+          r.album?.title ??
+          r.Album?.Title ??
+          (r.album ? r.album.Title ?? r.album.title : ""),
+        albumId:
+          r.albumId ??
+          r.AlbumId ??
+          r.album?.id ??
+          r.Album?.Id ??
+          r.albumId ??
+          null,
+        createdAt: r.createdAt ?? r.CreatedAt ?? null,
+      };
+    });
+  }, [rawReviews]);
 
   // 🔹 loading
   if (
@@ -126,40 +198,130 @@ export default function FriendProfilePage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Profil użytkownika */}
-      <FriendListItem friend={friendForHeader} />
-
-      {/* Ostatnie oceny */}
-      <h2 className="text-xl font-bold mt-6 mb-2">Ostatnie oceny</h2>
-      <div className="space-y-2">
-        {(!reviews || reviews.length === 0) && (
-          <p className="text-gray-400">Brak ocen.</p>
-        )}
-
-        {(reviews || []).map((r: any) => (
-          <div key={r.id ?? r.Id} className="bg-gray-800 rounded-lg p-3">
-            <p className="font-semibold">
-              {r.albumTitle ?? r.AlbumTitle ?? "–"}
-            </p>
-            <p className="text-sm text-gray-400">{r.score ?? r.Score}/10</p>
-            <p className="text-gray-300">{r.content ?? r.Content}</p>
+    <div className="p-6 max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden flex items-center justify-center text-2xl text-white">
+            {friendForHeader.avatarUrl ? (
+              <img
+                src={friendForHeader.avatarUrl}
+                alt={friendForHeader.nickname}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>
+                {(friendForHeader.nickname || "U").charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
-        ))}
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              {friendForHeader.nickname}
+            </h1>
+            <div className="mt-1 flex items-center gap-3">
+              <span
+                className={`inline-flex items-center px-2 py-1 text-sm rounded-full ${
+                  friendForHeader.status === "Online"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-700 text-gray-200"
+                }`}
+              >
+                {friendForHeader.status ?? "Offline"}
+              </span>
+              <span className="text-sm text-gray-400">
+                {albumsList.length} albumów
+              </span>
+              <span className="text-sm text-gray-400">
+                {reviews.length} ocen
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Placeholder buttons - keep simple */}
+          <button className="px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700 transition">
+            Wyślij wiadomość
+          </button>
+        </div>
       </div>
 
-      {/* Albumy użytkownika */}
-      <h2 className="text-xl font-bold mt-6 mb-2">Albumy użytkownika</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {(!albumsList || albumsList.length === 0) && (
-          <p className="text-gray-400 col-span-full">
-            Użytkownik nie dodał jeszcze żadnych albumów.
-          </p>
-        )}
+      {/* Main content: left = albums, right = reviews */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <h2 className="text-xl font-bold mb-3">Albumy użytkownika</h2>
+          {albumsList.length === 0 ? (
+            <p className="text-gray-400">
+              Użytkownik nie dodał jeszcze żadnych albumów.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {albumsList.map((a: any) => (
+                <AlbumCard key={a.id ?? a.title} album={a} />
+              ))}
+            </div>
+          )}
 
-        {(albumsList || []).map((ua: any) => (
-          <AlbumCard key={ua.id ?? ua.Id} album={ua} />
-        ))}
+          {/* Favorite albums (optional) */}
+          {rawFavoriteAlbums && rawFavoriteAlbums.length > 0 && (
+            <div className="mt-6">
+              <h3 className="font-semibold mb-2">Ulubione albumy</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {rawFavoriteAlbums.map((f: any, idx: number) => {
+                  const fa = f.album ?? f.Album ?? (f || {});
+                  const item = {
+                    id: fa.id ?? fa.Id ?? `${idx}`,
+                    title: fa.title ?? fa.Title ?? fa.name ?? "",
+                    artist:
+                      fa.artist ??
+                      fa.Artist ??
+                      (fa.Artist ? fa.Artist.Name : "") ??
+                      "",
+                    coverUrl: fa.coverUrl ?? fa.CoverUrl ?? "",
+                  };
+                  return <AlbumCard key={item.id} album={item} />;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <aside className="md:col-span-1">
+          <h2 className="text-xl font-bold mb-3">Ostatnie oceny</h2>
+
+          {reviews.length === 0 ? (
+            <p className="text-gray-400">Brak ocen.</p>
+          ) : (
+            <div className="space-y-3">
+              {reviews.map((r: any) => (
+                <div
+                  key={r.id}
+                  className="bg-gray-900 p-3 rounded-lg border border-gray-800"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-semibold text-white">
+                        {r.albumTitle ?? "–"}
+                      </p>
+                      <p className="text-sm text-gray-400 mt-1">{r.content}</p>
+                    </div>
+                    <div className="ml-4 flex flex-col items-end">
+                      <span className="text-sm text-gray-400">
+                        {r.createdAt
+                          ? new Date(r.createdAt).toLocaleDateString()
+                          : ""}
+                      </span>
+                      <div className="mt-2 inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold">
+                        {r.score ?? "-"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );
