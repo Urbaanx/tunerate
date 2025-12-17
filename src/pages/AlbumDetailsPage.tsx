@@ -89,7 +89,10 @@ const AlbumDetailsPage: React.FC = () => {
     data: album,
     isLoading: albumLoading,
     isError: albumError,
+    refetch: refetchAlbum,
   } = useGetApiAlbumsId<any, unknown>(id!, albumQueryOptions);
+
+  console.log("Album data:", album);
 
   const { data: userAlbums, refetch: refetchUserAlbums } = useGetApiUserAlbums<
     any,
@@ -198,77 +201,39 @@ const AlbumDetailsPage: React.FC = () => {
   };
 
   const handleSubmitReview = async () => {
-    if (!id || !newReview.trim() || rating <= 0) {
-      toast("Uzupełnij treść i wybierz ocenę.", "error");
-      return;
-    }
-
-    if (!isAuthenticated) {
-      requireAuth("Musisz się zalogować, aby dodać recenzję.");
-      return;
-    }
-
-    if (!isInCollection) {
-      toast("Dodaj album do kolekcji, aby dodać recenzję.", "info");
-      return;
-    }
-
+    if (!id || !newReview.trim() || rating <= 0) return;
     try {
-      await postReviewMutation(
-        { albumId: id!, data: { content: newReview.trim(), score: rating } },
-        { request: { headers: { Authorization: `Bearer ${token}` } } } as any
-      );
+      await postReviewMutation({
+        albumId: id,
+        data: { content: newReview, score: rating },
+      });
       setNewReview("");
       setRating(0);
-      if (sort === "newest") setPage(1);
-      if (refetchReviews) await refetchReviews();
-    } catch (err) {
-      console.error("❌ Błąd dodawania recenzji:", err);
-      toast("Nie udało się dodać recenzji.", "error");
+      await refetchReviews();
+      await refetchAlbum();
+    } catch (e) {
+      console.error("❌ Błąd przy dodawaniu recenzji:", e);
     }
   };
 
   const handleEditReview = async (reviewId: string) => {
-    if (!editContent.trim() || editRating <= 0) {
-      toast("Uzupełnij treść i ocenę.", "error");
-      return;
-    }
-    if (!isAuthenticated) {
-      requireAuth("Musisz się zalogować, aby edytować recenzję.");
-      return;
-    }
-
     try {
-      await putReviewMutation(
-        { reviewId, data: { content: editContent.trim(), score: editRating } },
-        { request: { headers: { Authorization: `Bearer ${token}` } } } as any
-      );
+      await putReviewMutation({
+        reviewId,
+        data: { content: editContent, score: editRating },
+      });
       setEditingReviewId(null);
-      setEditContent("");
-      setEditRating(0);
-      if (refetchReviews) await refetchReviews();
-    } catch (err) {
-      console.error("❌ Błąd edycji recenzji:", err);
-      toast("Nie udało się zaktualizować recenzji.", "error");
-    }
+      await refetchReviews();
+      await refetchAlbum();
+    } catch (e) {}
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (!window.confirm("Czy na pewno chcesz usunąć recenzję?")) return;
-    if (!isAuthenticated) {
-      requireAuth("Musisz się zalogować, aby usunąć recenzję.");
-      return;
-    }
-
     try {
-      await deleteReviewMutation({ reviewId }, {
-        request: { headers: { Authorization: `Bearer ${token}` } },
-      } as any);
-      if (refetchReviews) await refetchReviews();
-    } catch (err) {
-      console.error("❌ Błąd usuwania recenzji:", err);
-      toast("Nie udało się usunąć recenzji.", "error");
-    }
+      await deleteReviewMutation({ reviewId });
+      await refetchReviews();
+      await refetchAlbum();
+    } catch (e) {}
   };
 
   const formatDate = (d?: string | null) => {
