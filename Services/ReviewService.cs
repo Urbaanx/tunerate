@@ -167,6 +167,8 @@ namespace tunerate_api.Services
             if (review == null) return (false, "Nie znaleziono recenzji.");
             if (review.UserId != user.Id) return (false, "Nie możesz usuwać cudzej recenzji.");
 
+            var albumId = review.AlbumId;
+
             review.Album.Reviews.Remove(review);
             review.Album.AverageRating = review.Album.Reviews.Any()
                 ? review.Album.Reviews.Average(r => r.Score)
@@ -175,7 +177,7 @@ namespace tunerate_api.Services
             _context.Reviews.Remove(review);
             await _context.SaveChangesAsync();
 
-            InvalidateReviewCache(review.AlbumId);
+            InvalidateReviewCache(albumId);
 
             return (true, null);
         }
@@ -191,6 +193,7 @@ namespace tunerate_api.Services
                 }
                 _cache.Remove(keysKey);
             }
+            _cache.Remove($"album_details_{albumId}");
         }
     }
 }

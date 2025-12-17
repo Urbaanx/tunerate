@@ -26,8 +26,8 @@ public class DeezerPreviewService : IDeezerPreviewService
 
         var key = $"deezer_preview_{artist.Trim().ToLowerInvariant()}_{trackTitle.Trim().ToLowerInvariant()}";
 
-        if (_cache.TryGetValue<string?>(key, out var cached))
-            return cached;
+        if (_cache.TryGetValue<string>(key, out var cached))
+            return string.IsNullOrEmpty(cached) ? null : cached;
 
         string query = $"artist:\"{artist}\" track:\"{trackTitle}\"";
 
@@ -50,14 +50,13 @@ public class DeezerPreviewService : IDeezerPreviewService
 
             var result = JsonSerializer.Deserialize<DeezerSearchResponse>(response.Content, options);
             var preview = result?.Data?.FirstOrDefault()?.Preview;
-            var value = string.IsNullOrWhiteSpace(preview) ? null : preview;
-
+            var value = string.IsNullOrWhiteSpace(preview) ? string.Empty : preview;
             _cache.Set(key, value, _ttl);
-            return value;
+            return string.IsNullOrEmpty(value) ? null : value;
         }
         catch
         {
-            _cache.Set<string?>(key, null, _ttl);
+            _cache.Set(key, string.Empty, _ttl);
             return null;
         }
     }

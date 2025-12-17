@@ -142,9 +142,9 @@ namespace tunerate_api.Services
 
             await _context.SaveChangesAsync();
 
-            _cache.Remove($"user_albums_{auth0Id}");
+            _cache.Remove($"album_details_{album.Id}");
 
-            return (true, "Album dodany do kolekcji!");
+            return (true, "Album dodany do kolekcji.");
         }
 
         public async Task<IEnumerable<object>?> GetUserAlbumsAsync(string auth0Id)
@@ -194,6 +194,8 @@ namespace tunerate_api.Services
             await _context.SaveChangesAsync();
 
             _cache.Remove($"user_albums_{auth0Id}");
+            
+            _cache.Remove($"album_details_{albumId}");
 
             return (true, "Album usunięty z kolekcji.");
         }
@@ -211,7 +213,8 @@ namespace tunerate_api.Services
 
             return user.UserAlbums
                 .OrderByDescending(ua => ua.CreatedAt)
-                .Select(ua => new {
+                .Select(ua => new
+                {
                     id = ua.Album.Id,
                     title = ua.Album.Title,
                     artist = ua.Album.Artist.Name,
