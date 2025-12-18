@@ -8,7 +8,6 @@ import AlbumCard from "../components/AlbumCard";
 
 const LandingPage: React.FC = () => {
   const {
-    loginWithRedirect,
     isAuthenticated,
     user,
     isLoading,
@@ -154,7 +153,7 @@ const LandingPage: React.FC = () => {
         <section className="max-w-5xl mx-auto mb-12 text-left bg-white/2 p-6 rounded-xl border border-white/6">
           <h3 className="text-2xl font-bold mb-4">Jak to działa?</h3>
           <ol className="list-decimal list-inside text-gray-300 space-y-2">
-            <li>Załóż konto lub zaloguj się (Auth0).</li>
+            <li>Załóż konto lub zaloguj się.</li>
             <li>Dodawaj przesłuchane albumy do kolekcji i oceniaj je.</li>
             <li>System analizuje Twoje oceny i proponuje kolejne albumy.</li>
           </ol>

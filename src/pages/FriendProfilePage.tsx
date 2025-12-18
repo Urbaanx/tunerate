@@ -1,7 +1,6 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import FriendListItem from "../components/FriendListItem";
+import { useParams, useNavigate } from "react-router-dom";
 import AlbumCard from "../components/AlbumCard";
 import { Loader2 } from "lucide-react";
 import {
@@ -11,6 +10,7 @@ import {
 
 export default function FriendProfilePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { isAuthenticated, getAccessTokenSilently, loginWithRedirect } =
     useAuth0();
   const [token, setToken] = useState<string | null>(null);
@@ -241,7 +241,10 @@ export default function FriendProfilePage() {
 
         <div className="flex items-center gap-3">
           {/* Placeholder buttons - keep simple */}
-          <button className="px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700 transition">
+          <button
+            onClick={() => navigate(`/chat/${friendForHeader.id ?? id}`)}
+            className="px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700 transition"
+          >
             Wyślij wiadomość
           </button>
         </div>
