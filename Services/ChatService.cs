@@ -75,7 +75,6 @@ namespace tunerate_api.Services
 
             if (toMark.Count == 0)
             {
-                // still notify zero if needed
                 return 0;
             }
 

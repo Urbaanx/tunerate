@@ -29,8 +29,7 @@ public class Program
                 {
                     NameClaimType = ClaimTypes.NameIdentifier
                 };
-
-                // Allow SignalR tokens via query string
+                
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
@@ -53,6 +52,9 @@ public class Program
         {
             options.AddPolicy("admin", policy =>
                 policy.Requirements.Add(new HasScopeRequirement("admin", domain)));
+            options.AddPolicy("role_manager", policy => {
+                policy.Requirements.Add(new HasScopeRequirement("role_manager", domain));
+            });
         });
 
         // SERVICES
@@ -108,7 +110,10 @@ public class Program
         {
             options.AddPolicy("AllowSpecificOrigin", policy =>
             {
-                policy.WithOrigins("http://localhost:5173")
+                policy.WithOrigins("http://localhost:5173",
+                        "https://localhost:5173",
+                        "https://127.0.0.1:5173",
+                        "http://127.0.0.1:5173")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();
@@ -122,8 +127,8 @@ public class Program
         var app = builder.Build();
 
         // MIDDLEWARE
-        app.UseMiddleware<TokenDecodingMiddlewere>();
         app.UseCors("AllowSpecificOrigin");
+        app.UseMiddleware<TokenDecodingMiddlewere>();
 
         if (app.Environment.IsDevelopment())
         {

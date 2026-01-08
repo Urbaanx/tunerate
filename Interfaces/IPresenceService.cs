@@ -1,5 +1,3 @@
-using System;
-
 namespace tunerate_api.Interfaces
 {
     public interface IPresenceService

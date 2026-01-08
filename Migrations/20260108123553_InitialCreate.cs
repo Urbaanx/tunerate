@@ -16,8 +16,8 @@ namespace tunerate_api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    ExternalId = table.Column<string>(type: "text", nullable: true)
+                    Name = table.Column<string>(type: "varchar(30)", nullable: false),
+                    ExternalId = table.Column<string>(type: "varchar(100)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -41,8 +41,8 @@ namespace tunerate_api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Auth0Id = table.Column<string>(type: "text", nullable: false),
-                    Nickname = table.Column<string>(type: "text", nullable: false),
+                    Auth0Id = table.Column<string>(type: "varchar(100)", nullable: false),
+                    Nickname = table.Column<string>(type: "varchar(50)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -81,7 +81,7 @@ namespace tunerate_api.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     FromUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     ToUserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Content = table.Column<string>(type: "text", nullable: false),
+                    Content = table.Column<string>(type: "varchar(4000)", nullable: false),
                     SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsRead = table.Column<bool>(type: "boolean", nullable: false)
                 },
@@ -192,7 +192,7 @@ namespace tunerate_api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Content = table.Column<string>(type: "text", nullable: false),
+                    Content = table.Column<string>(type: "varchar(4000)", nullable: false),
                     Score = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),

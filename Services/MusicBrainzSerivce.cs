@@ -12,7 +12,7 @@ namespace tunerate_api.Services
         private readonly RestClient _client;
         private readonly RestClient _coverArtClient;
         private readonly IMemoryCache _cache;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(5); // ograniczenie równoległości
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(5);
         private readonly TimeSpan _searchCacheTtl = TimeSpan.FromMinutes(5);
         private readonly TimeSpan _coverCacheTtl = TimeSpan.FromDays(1);
 
@@ -65,7 +65,7 @@ namespace tunerate_api.Services
             var releases = root.GetProperty("releases");
             var totalCount = root.TryGetProperty("release-count", out var countProp)
                 ? countProp.GetInt32()
-                : offset + releases.GetArrayLength() + pageSize; // fallback
+                : offset + releases.GetArrayLength() + pageSize;
 
             var results = new List<AlbumDto>();
 
@@ -92,7 +92,6 @@ namespace tunerate_api.Services
 
                 if (id != null)
                 {
-                    // dodaj bez okładki na razie
                     results.Add(new AlbumDto
                     {
                         Title = title ?? "",
@@ -104,8 +103,7 @@ namespace tunerate_api.Services
                     });
                 }
             }
-
-            // równoległe pobieranie okładek z limitem równoległości i cache
+            
             var tasks = results.Select(async album =>
             {
                 if (string.IsNullOrEmpty(album.ExternalId)) return;
@@ -198,7 +196,6 @@ namespace tunerate_api.Services
 
             try
             {
-                // 1️⃣ Pobierz release-group ID
                 var releaseRequest = new RestRequest($"release/{releaseId}?inc=release-groups&fmt=json");
                 var releaseResponse = await _client.ExecuteAsync(releaseRequest);
 
@@ -212,8 +209,7 @@ namespace tunerate_api.Services
                 }
 
                 var releaseGroupId = releaseGroup.GetProperty("id").GetString();
-
-                // 2️⃣ Pobierz tagi z release-group
+                
                 var tagsRequest = new RestRequest($"release-group/{releaseGroupId}?inc=tags&fmt=json");
                 var tagsResponse = await _client.ExecuteAsync(tagsRequest);
 
@@ -235,7 +231,7 @@ namespace tunerate_api.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Błąd pobierania tagów: {ex.Message}");
+                Console.WriteLine($"Błąd pobierania tagów: {ex.Message}");
                 return new List<string>();
             }
         }

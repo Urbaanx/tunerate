@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
-using System.Threading.Tasks;
 using tunerate_api.Models;
 
 namespace tunerate_api.Interfaces
@@ -14,5 +11,6 @@ namespace tunerate_api.Interfaces
         Task<(User? User, string? Error)> SyncUserAsync(string auth0Id);
         Task<(User? User, string? Error)> ChangeNicknameAsync(string auth0Id, string newNickname);
         Task<object> GetMyStatsAsync(string auth0Id);
+        Task<(string? TicketUrl, string? Error)> CreatePasswordChangeTicketAsync(string auth0Id);
     }
 }

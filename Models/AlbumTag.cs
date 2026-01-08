@@ -1,5 +1,4 @@
-﻿
-namespace tunerate_api.Models
+﻿namespace tunerate_api.Models
 {
     public class AlbumTag
     {

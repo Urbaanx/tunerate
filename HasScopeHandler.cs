@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using System.Text.Json;
 
 namespace tunerate_api;
 
@@ -6,15 +7,45 @@ public class HasScopeHandler: AuthorizationHandler<HasScopeRequirement>
 {
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, HasScopeRequirement requirement)
     {
-        // If user does not have the scope claim, get out of here
-        if (!context.User.HasClaim(c => c.Type == "permissions" && c.Issuer == requirement.Issuer))
+        var matchingClaims = context.User.Claims
+            .Where(c => string.Equals(c.Type, "permissions", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(c.Type, "permission", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!matchingClaims.Any())
             return Task.CompletedTask;
 
-        // Split the scopes string into an array
-        var scopes = context.User.FindFirst(c => c.Type == "permissions" && c.Issuer == requirement.Issuer).Value.Split(' ');
+        var scopes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Succeed if the scope array contains the required scope
-        if (scopes.Any(s => s == requirement.Scope))
+        foreach (var claim in matchingClaims)
+        {
+            var raw = (claim?.Value ?? "").Trim();
+            if (string.IsNullOrEmpty(raw)) continue;
+            
+            if (raw.StartsWith("["))
+            {
+                try
+                {
+                    var arr = JsonSerializer.Deserialize<string[]>(raw);
+                    if (arr != null)
+                    {
+                        foreach (var item in arr)
+                            if (!string.IsNullOrWhiteSpace(item))
+                                scopes.Add(item.Trim());
+                        continue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Exception parsing scopes claim as JSON array: {ex}");
+                }
+            }
+            
+            foreach (var part in raw.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                scopes.Add(part.Trim());
+        }
+
+        if (scopes.Contains(requirement.Scope))
             context.Succeed(requirement);
 
         return Task.CompletedTask;

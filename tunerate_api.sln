@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tunerate-api", "tunerate-api.csproj", "{8B7F1E91-9F87-48FE-97E5-8BAB2607B6F0}"
 EndProject
 Global

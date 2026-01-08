@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using tunerate_api.Models;
 
 namespace tunerate_api.Interfaces

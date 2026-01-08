@@ -24,5 +24,6 @@ namespace tunerate_api.Models
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<AlbumTag> AlbumTags { get; set; } = new List<AlbumTag>();
         public ICollection<UserAlbum> UserAlbums { get; set; } = new List<UserAlbum>();
+        public ICollection<AlbumShare> AlbumShares { get; set; } = new List<AlbumShare>();
     }
 }

@@ -143,6 +143,7 @@ namespace tunerate_api.Services
             await _context.SaveChangesAsync();
 
             _cache.Remove($"album_details_{album.Id}");
+            _cache.Remove($"user_albums_{auth0Id}");
 
             return (true, "Album dodany do kolekcji.");
         }

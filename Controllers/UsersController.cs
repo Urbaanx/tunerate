@@ -162,6 +162,19 @@ namespace tunerate_api.Controllers
 
             return Ok(results);
         }
+
+        [HttpPost("password-reset")]
+        [Authorize]
+        public async Task<IActionResult> PasswordReset()
+        {
+            var auth0Id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (auth0Id == null) return Unauthorized("Brak Auth0 ID.");
+
+            var (ticketUrl, error) = await _userService.CreatePasswordChangeTicketAsync(auth0Id);
+            if (error != null) return BadRequest(error);
+
+            return Ok(new { ticketUrl });
+        }
     }
 
     public class Auth0UserResponse

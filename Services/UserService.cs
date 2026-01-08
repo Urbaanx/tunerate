@@ -144,5 +144,40 @@ namespace tunerate_api.Services
 
             return JsonSerializer.Deserialize<JsonElement>(response.Content).GetProperty("access_token");
         }
+
+        public async Task<(string? TicketUrl, string? Error)> CreatePasswordChangeTicketAsync(string auth0Id)
+        {
+            if (string.IsNullOrWhiteSpace(auth0Id)) return (null, "Brak Auth0 ID.");
+
+            var token = await GetAuth0ManagementTokenAsync();
+            if (token == null) return (null, "Unable to get management token");
+
+            var client = new RestClient($"https://{_conf["Auth0:Domain"]}/api/v2/tickets/password-change");
+            var request = new RestRequest { Method = Method.Post };
+            request.AddHeader("authorization", $"Bearer {token}");
+            request.AddHeader("content-type", "application/json");
+
+            var body = new
+            {
+                user_id = auth0Id
+            };
+            request.AddJsonBody(body);
+
+            var response = await client.ExecuteAsync(request);
+            if (response.Content == null) return (null, "Brak odpowiedzi od Auth0.");
+
+            try
+            {
+                var doc = JsonDocument.Parse(response.Content);
+                if (doc.RootElement.TryGetProperty("ticket", out var ticketElem))
+                    return (ticketElem.GetString(), null);
+                
+                return (null, $"Unexpected response: {response.Content}");
+            }
+            catch (Exception ex)
+            {
+                return (null, $"Błąd parsowania odpowiedzi: {ex.Message}");
+            }
+        }
     }
 }

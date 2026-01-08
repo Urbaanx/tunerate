@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 namespace tunerate_api.Interfaces
 {
     public interface IFriendshipService

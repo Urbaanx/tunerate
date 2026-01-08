@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using RestSharp;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,15 +18,16 @@ namespace tunerate_api.Controllers
         private readonly AppDbContext _context;
         private readonly IConfiguration _conf;
         private readonly Auth0TokenSettings? _tokenSettings;
+        private readonly IMemoryCache _cache;
 
-        public AdminController(AppDbContext context, IConfiguration config)
+        public AdminController(AppDbContext context, IConfiguration config, IMemoryCache cache)
         {
             _context = context;
             _conf = config;
+            _cache = cache;
             _tokenSettings = _conf.GetSection("Auth0ManagementToken").Get<Auth0TokenSettings>();
         }
-
-        // --- General helpers ---
+        
 
         [HttpGet("tables")]
         public IActionResult GetTables()
@@ -1147,6 +1149,7 @@ namespace tunerate_api.Controllers
             return null;
         }
         
+        [Authorize(Policy = "role_manager")]
         [HttpPost("users/{auth0Id}/assign-role")]
         public async Task<IActionResult> AssignRoleToUser(string auth0Id, [FromBody] RoleChangeRequest req)
         {
@@ -1168,6 +1171,7 @@ namespace tunerate_api.Controllers
             return Ok(new { message = "Role assigned" });
         }
         
+        [Authorize(Policy = "role_manager")]
         [HttpPost("users/{auth0Id}/remove-role")]
         public async Task<IActionResult> RemoveRoleFromUser(string auth0Id, [FromBody] RoleChangeRequest req)
         {
@@ -1193,6 +1197,20 @@ namespace tunerate_api.Controllers
         {
             [JsonPropertyName("roleName")]
             public string? RoleName { get; set; }
+        }
+
+        [HttpPost("clear-cache")]
+        public IActionResult ClearCache()
+        {
+            try
+            {
+                (_cache as MemoryCache).Compact(1.0);
+                return Ok(new { message = "Cache cleared" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
     }
 }

@@ -111,11 +111,11 @@ namespace tunerate_api.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("ExternalId")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(30)");
 
                     b.HasKey("Id");
 
@@ -130,7 +130,7 @@ namespace tunerate_api.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<Guid>("FromUserId")
                         .HasColumnType("uuid");
@@ -192,7 +192,7 @@ namespace tunerate_api.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -236,14 +236,14 @@ namespace tunerate_api.Migrations
 
                     b.Property<string>("Auth0Id")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Nickname")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("Id");
 
@@ -286,19 +286,19 @@ namespace tunerate_api.Migrations
             modelBuilder.Entity("tunerate_api.Models.AlbumShare", b =>
                 {
                     b.HasOne("tunerate_api.Models.Album", "Album")
-                        .WithMany()
+                        .WithMany("AlbumShares")
                         .HasForeignKey("AlbumId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("tunerate_api.Models.User", "FromUser")
-                        .WithMany()
+                        .WithMany("AlbumSharesSent")
                         .HasForeignKey("FromUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("tunerate_api.Models.User", "ToUser")
-                        .WithMany()
+                        .WithMany("AlbumSharesReceived")
                         .HasForeignKey("ToUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -332,13 +332,13 @@ namespace tunerate_api.Migrations
             modelBuilder.Entity("tunerate_api.Models.ChatMessage", b =>
                 {
                     b.HasOne("tunerate_api.Models.User", "FromUser")
-                        .WithMany()
+                        .WithMany("SentMessages")
                         .HasForeignKey("FromUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("tunerate_api.Models.User", "ToUser")
-                        .WithMany()
+                        .WithMany("ReceivedMessages")
                         .HasForeignKey("ToUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -351,13 +351,13 @@ namespace tunerate_api.Migrations
             modelBuilder.Entity("tunerate_api.Models.Friendship", b =>
                 {
                     b.HasOne("tunerate_api.Models.User", "Addressee")
-                        .WithMany()
+                        .WithMany("FriendshipsReceived")
                         .HasForeignKey("AddresseeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("tunerate_api.Models.User", "Requester")
-                        .WithMany()
+                        .WithMany("FriendshipsRequested")
                         .HasForeignKey("RequesterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -407,6 +407,8 @@ namespace tunerate_api.Migrations
 
             modelBuilder.Entity("tunerate_api.Models.Album", b =>
                 {
+                    b.Navigation("AlbumShares");
+
                     b.Navigation("AlbumTags");
 
                     b.Navigation("Reviews");
@@ -426,7 +428,19 @@ namespace tunerate_api.Migrations
 
             modelBuilder.Entity("tunerate_api.Models.User", b =>
                 {
+                    b.Navigation("AlbumSharesReceived");
+
+                    b.Navigation("AlbumSharesSent");
+
+                    b.Navigation("FriendshipsReceived");
+
+                    b.Navigation("FriendshipsRequested");
+
+                    b.Navigation("ReceivedMessages");
+
                     b.Navigation("Reviews");
+
+                    b.Navigation("SentMessages");
 
                     b.Navigation("UserAlbums");
                 });
