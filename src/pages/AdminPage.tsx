@@ -42,6 +42,9 @@ import {
   usePostApiAdminChatmessages,
   usePutApiAdminChatmessagesId,
   useDeleteApiAdminChatmessagesId,
+  usePostApiAdminUsersAuth0IdAssignRole,
+  usePostApiAdminUsersAuth0IdRemoveRole,
+  usePostApiAdminClearCache,
 } from "../api/endpoints/tunerateApi";
 import { Loader2, Plus, Edit, Trash2, X } from "lucide-react";
 
@@ -64,6 +67,8 @@ const AdminPage: React.FC = () => {
   const [filter, setFilter] = useState<string>("");
   const [totalCount, setTotalCount] = useState<number | null>(null);
 
+  const [canAssignRoles, setCanAssignRoles] = useState(false);
+
   const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
 
   useEffect(() => {
@@ -84,7 +89,6 @@ const AdminPage: React.FC = () => {
       })
       .catch((err) => {
         console.error("AdminPage: token error", err);
-        // fallback to interactive consent if required
         if (err?.error === "consent_required") {
           loginWithRedirect({
             authorizationParams: {
@@ -102,6 +106,48 @@ const AdminPage: React.FC = () => {
     };
   }, [isAuthenticated, getAccessTokenSilently, audience, loginWithRedirect]);
 
+  const parseJwt = (jwt: string | null) => {
+    if (!jwt) return null;
+    try {
+      const payload = jwt.split(".")[1];
+      const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map(function (c) {
+            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+          })
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  };
+  useEffect(() => {
+    if (!token) {
+      setCanAssignRoles(false);
+      return;
+    }
+    const payload = parseJwt(token);
+    if (!payload) {
+      setCanAssignRoles(false);
+      return;
+    }
+
+    const perms = payload.permissions ?? payload.permission ?? null;
+    let allowed = false;
+
+    if (Array.isArray(perms)) {
+      allowed = perms.includes("RoleManager") || perms.includes("role_manager");
+    } else if (typeof perms === "string") {
+      const parts = perms.split(" ");
+      allowed = parts.includes("RoleManager") || parts.includes("role_manager");
+    }
+
+    setCanAssignRoles(Boolean(allowed));
+  }, [token]);
+
   const authRequest = useMemo(
     () =>
       token
@@ -110,9 +156,7 @@ const AdminPage: React.FC = () => {
     [token]
   );
 
-  // build query params for Orval first arg (maps to query string)
   const mkParams = (tableName: string) => {
-    // some endpoints don't use sortBy/sortDir/q (but it's okay to pass undefined)
     switch (tableName) {
       default:
         return {
@@ -125,7 +169,6 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // build second-argument options: axios request + react-query options
   const mkRequestOptions = (tableName: string) =>
     token
       ? {
@@ -134,7 +177,6 @@ const AdminPage: React.FC = () => {
         }
       : { query: { enabled: false } };
 
-  // NOTE: useGetApiAdminTables / useGetApiAdminCounts keep original shape (no params)
   const tablesQuery = useGetApiAdminTables(
     token
       ? {
@@ -152,7 +194,10 @@ const AdminPage: React.FC = () => {
       : { query: { enabled: false } }
   );
 
-  // per-table queries (params, options)
+  const clearCache = usePostApiAdminClearCache<any, unknown>(
+    authRequest ?? undefined
+  );
+
   const usersQuery = useGetApiAdminUsers<any, unknown>(
     mkParams("Users"),
     mkRequestOptions("Users")
@@ -194,7 +239,6 @@ const AdminPage: React.FC = () => {
     mkRequestOptions("ChatMessages")
   );
 
-  // mutations
   const postUsers = usePostApiAdminUsers<any, unknown>(
     authRequest ?? undefined
   );
@@ -287,15 +331,18 @@ const AdminPage: React.FC = () => {
     authRequest ?? undefined
   );
 
-  // rows (robust extraction from Orval response)
+  const assignRole = usePostApiAdminUsersAuth0IdAssignRole<any, unknown>(
+    authRequest ?? undefined
+  );
+  const removeRole = usePostApiAdminUsersAuth0IdRemoveRole<any, unknown>(
+    authRequest ?? undefined
+  );
+
   const extractItems = (raw: any): any[] => {
     if (!raw) return [];
-    // already an array
     if (Array.isArray(raw)) return raw;
-    // common paged shapes
     if (raw.Items && Array.isArray(raw.Items)) return raw.Items;
     if (raw.items && Array.isArray(raw.items)) return raw.items;
-    // sometimes axios/orval wraps under .data
     if (raw.data) {
       const d = raw.data;
       if (Array.isArray(d)) return d;
@@ -334,26 +381,22 @@ const AdminPage: React.FC = () => {
 
   const rows = extractItems(raw);
 
-  // only treat auth/token/tables/counts as global loading — per-table loading
-  // should not replace the whole UI (prevents input losing focus).
   const loading =
     !isAuthenticated ||
     !token ||
     tablesQuery.isLoading ||
     countsQuery.isLoading;
 
-  // helper: derive columns from first row (guarded)
   const columns = useMemo(() => {
     if (!Array.isArray(rows) || rows.length === 0) return [];
     const first = rows[0];
     if (!first || typeof first !== "object") return [];
-    // include only primitive properties and "*Id" fields
     return Object.keys(first).filter((k) => {
       const v = first[k];
-      if (v === null || v === undefined) return true; // show unknown fields
+      if (v === null || v === undefined) return true;
       const t = typeof v;
       if (t === "string" || t === "number" || t === "boolean") return true;
-      // include id fields (guid strings)
+
       if (k.toLowerCase().endsWith("id")) return true;
       return false;
     });
@@ -362,7 +405,6 @@ const AdminPage: React.FC = () => {
   const openNew = () => {
     setIsNew(true);
     setSelectedRow(null);
-    // default formState: attempt to use column keys with empty values
     const template: FormState = {};
     columns.forEach((c) => (template[c] = ""));
     setFormState(template);
@@ -372,20 +414,16 @@ const AdminPage: React.FC = () => {
   const openEdit = (row: any) => {
     setIsNew(false);
     setSelectedRow(row);
-    // flatten row to primitives: if nested object has Id, prefer its Id
     const flat: FormState = {};
     Object.entries(row).forEach(([k, v]) => {
       if (v && typeof v === "object") {
-        // prefer <Name>Id or Id inside nested object
         const obj = v as any;
         if (obj.id) flat[`${k}Id`] = obj.id;
         else if (obj.Id) flat[`${k}Id`] = obj.Id;
-        // ignore full objects
       } else {
         flat[k] = v;
       }
     });
-    // ensure columns presence
     columns.forEach((c) => {
       if (!(c in flat)) flat[c] = "";
     });
@@ -399,7 +437,6 @@ const AdminPage: React.FC = () => {
     setFormState({});
   };
 
-  // helpers to format date strings to yyyy-MM-dd for <input type="date">
   const toDateInput = (val: any) => {
     if (!val) return "";
     const d = new Date(val);
@@ -415,12 +452,9 @@ const AdminPage: React.FC = () => {
     return new Date(s);
   };
 
-  // Create / Update generic handlers (map formState -> API call depending on table)
   const handleSubmit = async () => {
-    // copy and coerce values
     const payload: any = {};
     Object.entries(formState).forEach(([k, v]) => {
-      // try to coerce booleans/numbers/dates
       if (v === "true" || v === "false") payload[k] = v === "true";
       else if (
         typeof v === "string" &&
@@ -471,7 +505,6 @@ const AdminPage: React.FC = () => {
             );
           else {
             const id = String(selectedRow.id ?? selectedRow.Id);
-            // coerce date fields
             if (payload.ReleaseDate && typeof payload.ReleaseDate === "string")
               payload.ReleaseDate = fromDateInput(payload.ReleaseDate);
             putAlbum.mutate(
@@ -503,7 +536,6 @@ const AdminPage: React.FC = () => {
               { onSuccess: () => albumTagsQuery.refetch() }
             );
           else {
-            // update not supported for composite: recreate
             alert(
               "Edytowanie AlbumTag nieobsługiwane — utwórz nowy lub usuń istniejący."
             );
@@ -694,6 +726,63 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [roleModalType, setRoleModalType] = useState<"assign" | "remove">(
+    "assign"
+  );
+  const [roleInput, setRoleInput] = useState("");
+  const [roleTargetAuth0Id, setRoleTargetAuth0Id] = useState<string | null>(
+    null
+  );
+
+  const openRoleModal = (type: "assign" | "remove", row: any) => {
+    const auth0Id =
+      row?.auth0Id ?? row?.Auth0Id ?? row?.Auth0ID ?? row?.Auth0 ?? "";
+    if (!auth0Id) {
+      alert("Brak Auth0 ID dla tego użytkownika.");
+      return;
+    }
+    setRoleModalType(type);
+    setRoleTargetAuth0Id(String(auth0Id));
+    setRoleInput("");
+    setRoleModalOpen(true);
+  };
+
+  const submitRoleChange = () => {
+    if (!roleTargetAuth0Id) return;
+    const roleName = roleInput?.trim();
+    if (!roleName) {
+      alert("Wpisz nazwę roli.");
+      return;
+    }
+    const payload = { roleName };
+    if (roleModalType === "assign") {
+      assignRole.mutate(
+        { auth0Id: roleTargetAuth0Id, data: payload as any },
+        {
+          onSuccess: () => {
+            alert("Rola nadana.");
+            usersQuery.refetch();
+            setRoleModalOpen(false);
+          },
+          onError: (e: any) => alert("Błąd: " + String(e?.message ?? e)),
+        }
+      );
+    } else {
+      removeRole.mutate(
+        { auth0Id: roleTargetAuth0Id, data: payload as any },
+        {
+          onSuccess: () => {
+            alert("Rola usunięta.");
+            usersQuery.refetch();
+            setRoleModalOpen(false);
+          },
+          onError: (e: any) => alert("Błąd: " + String(e?.message ?? e)),
+        }
+      );
+    }
+  };
+
   useEffect(() => {
     setPage(1);
     setFilter("");
@@ -741,7 +830,6 @@ const AdminPage: React.FC = () => {
         total = Number((data as any).Total);
       else if ((data as any).items && (data as any).items.total !== undefined)
         total = Number((data as any).items.total);
-      // otherwise leave null
     }
     setTotalCount(total);
   }, [
@@ -837,7 +925,7 @@ const AdminPage: React.FC = () => {
             <button
               onClick={() => {
                 if (selectedTable) {
-                  /* refetch current */ switch (selectedTable) {
+                   switch (selectedTable) {
                     case "Users":
                       usersQuery.refetch();
                       break;
@@ -875,6 +963,26 @@ const AdminPage: React.FC = () => {
               className="px-3 py-2 bg-white/6 rounded hover:bg-white/10"
             >
               Odśwież
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm("Wyczyścić cache backendu?")) return;
+                clearCache.mutate(undefined, {
+                  onSuccess: () => {
+                    alert("Cache wyczyszczony.");
+                    countsQuery.refetch();
+                  },
+                  onError: (err: any) => {
+                    console.error(err);
+                    alert(
+                      "Błąd czyszczenia cache: " + String(err?.message ?? err)
+                    );
+                  },
+                });
+              }}
+              className="px-3 py-2 bg-yellow-600 rounded hover:bg-yellow-700"
+            >
+              Wyczyść cache
             </button>
           </div>
         </div>
@@ -995,6 +1103,24 @@ const AdminPage: React.FC = () => {
                           >
                             <Trash2 className="w-4 h-4 text-white" />
                           </button>
+                          {canAssignRoles && selectedTable === "Users" && (
+                            <button
+                              title="Nadaj rolę"
+                              onClick={() => openRoleModal("assign", r)}
+                              className="p-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              R+
+                            </button>
+                          )}
+                          {canAssignRoles && selectedTable === "Users" && (
+                            <button
+                              title="Usuń rolę"
+                              onClick={() => openRoleModal("remove", r)}
+                              className="p-1 rounded bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                              R-
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1052,12 +1178,10 @@ const AdminPage: React.FC = () => {
             <div className="space-y-3 max-h-[60vh] overflow-auto pr-2">
               {columns.map((col) => {
                 const cur = formState[col];
-                // detect type heuristically
                 const type = (() => {
                   if (col.toLowerCase().endsWith("id")) return "text";
                   if (typeof cur === "boolean") return "checkbox";
                   if (typeof cur === "number") return "number";
-                  // date-like string check (ISO)
                   if (
                     typeof cur === "string" &&
                     /^\d{4}-\d{2}-\d{2}T/.test(cur)
@@ -1131,6 +1255,51 @@ const AdminPage: React.FC = () => {
                 className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
               >
                 {isNew ? "Utwórz" : "Zapisz"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Role modal */}
+      {roleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setRoleModalOpen(false)}
+          />
+          <div className="relative z-60 w-full max-w-md bg-black border border-white/10 rounded p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">
+                {roleModalType === "assign" ? "Nadaj rolę" : "Usuń rolę"}
+              </h3>
+              <button
+                onClick={() => setRoleModalOpen(false)}
+                className="p-1 rounded bg-white/6 hover:bg-white/10"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm text-gray-300">Nazwa roli</label>
+              <input
+                value={roleInput}
+                onChange={(e) => setRoleInput(e.target.value)}
+                className="p-2 bg-black/30 text-white rounded border border-white/10 w-full"
+              />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setRoleModalOpen(false)}
+                className="px-3 py-2 bg-white/6 rounded"
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={submitRoleChange}
+                className="px-3 py-2 bg-blue-600 rounded"
+              >
+                {roleModalType === "assign" ? "Nadaj" : "Usuń"}
               </button>
             </div>
           </div>

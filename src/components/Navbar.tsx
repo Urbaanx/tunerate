@@ -12,7 +12,7 @@ import {
   Info,
   Menu,
   X,
-  Shield, // <-- nowy import
+  Shield,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -35,7 +35,7 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false); // <-- stan admina
+  const [isAdmin, setIsAdmin] = useState(false);
   const queryClient = useQueryClient();
   const [hubConnection, setHubConnection] =
     React.useState<HubConnection | null>(null);
@@ -69,7 +69,6 @@ const Navbar: React.FC = () => {
     };
   }, [isAuthenticated, getAccessTokenSilently, audience]);
 
-  // parse JWT helper (base64url safe)
   const parseJwt = (jwt: string | null) => {
     if (!jwt) return null;
     try {
@@ -100,29 +99,13 @@ const Navbar: React.FC = () => {
       return;
     }
 
-    // Auth0: permissions może być tablicą lub stringiem; scope może zawierać uprawnienia
     const perms = payload.permissions ?? payload.permission ?? null;
-    const scope = payload.scope ?? null;
-    const customRoles =
-      payload["https://tunerate/roles"] ??
-      payload["https://tunerate.com/roles"];
-
     let adminFound = false;
 
     if (Array.isArray(perms)) {
       adminFound = perms.includes("admin");
     } else if (typeof perms === "string") {
       adminFound = perms.split(" ").includes("admin");
-    }
-
-    if (!adminFound && typeof scope === "string") {
-      adminFound = scope.split(" ").includes("admin");
-    }
-
-    if (!adminFound && Array.isArray(customRoles)) {
-      adminFound = customRoles.includes("admin");
-    } else if (!adminFound && typeof customRoles === "string") {
-      adminFound = customRoles.split(" ").includes("admin");
     }
 
     setIsAdmin(adminFound);
@@ -139,7 +122,6 @@ const Navbar: React.FC = () => {
       }
     : { query: { enabled: false } };
 
-  // fetch shares and incoming requests to compute unread count
   const sharesQuery = useGetApiSocialShares<any, unknown>(requestOptions);
   const requestsQuery = useGetApiSocialRequests<any, unknown>(requestOptions);
 
@@ -151,7 +133,6 @@ const Navbar: React.FC = () => {
   const unreadRequests = Array.isArray(requests)
     ? (requests as any[]).length
     : 0;
-  // wiadomości
   const unreadMessagesQuery = useGetApiChatUnreadCounts<any, unknown>(
     requestOptions
   );
@@ -164,11 +145,10 @@ const Navbar: React.FC = () => {
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
-  // === Fetch local DB user by Auth0 id (so we can show DB nickname) ===
-  const { data: localUser, refetch: refetchLocalUser } =
-    useGetApiUsersByAuth0idAuth0Id<any, unknown>(user?.sub ?? "");
+  const { data: localUser } = useGetApiUsersByAuth0idAuth0Id<any, unknown>(
+    user?.sub ?? ""
+  );
 
-  // Determine whether this is an Auth0-backed user (same logic as DashboardPage)
   const isDbUser =
     !!user &&
     (user.sub?.startsWith?.("auth0|") ||
@@ -207,10 +187,8 @@ const Navbar: React.FC = () => {
     </Link>
   );
 
-  // Global SignalR connection for presence (app-wide)
   React.useEffect(() => {
     if (!token) {
-      // cleanup if token lost
       if (hubConnection) {
         hubConnection.stop().catch(() => {});
         setHubConnection(null);
@@ -243,7 +221,6 @@ const Navbar: React.FC = () => {
         setHubConnection(null);
       });
 
-    // handler: on presence change invalidate relevant queries so UI refreshes everywhere
     const presenceHandler = (payload: any) => {
       console.debug("Navbar: FriendPresenceChanged", payload);
       try {
@@ -267,7 +244,54 @@ const Navbar: React.FC = () => {
       conn.stop().catch(() => {});
       setHubConnection(null);
     };
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  if (!isAuthenticated) {
+    return (
+      <nav className="sticky top-0 z-40 bg-gradient-to-r from-purple-800 to-indigo-900 shadow-md border-b border-indigo-800">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div
+            onClick={() => navigate("/")}
+            className="flex items-center gap-3 cursor-pointer"
+            aria-label="TuneRate home"
+          >
+            <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-700 rounded-lg shadow-md">
+              <span className="text-lg font-bold text-white">TR</span>
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-lg font-extrabold tracking-tight text-white">
+                Tune<span className="text-blue-300">Rate</span>
+              </div>
+              <div className="text-xs text-gray-200 -mt-1">
+                kolekcje • rekomendacje
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3">
+              <button
+                onClick={() => loginWithRedirect()}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-sm font-medium shadow-sm hover:scale-105 transform transition"
+              >
+                Zaloguj się
+              </button>
+            </div>
+
+            <div className="md:hidden">
+              <button
+                onClick={() => loginWithRedirect()}
+                aria-label="Zaloguj (mobilnie)"
+                className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-sm font-medium shadow-sm hover:scale-105 transform transition"
+              >
+                Zaloguj się
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="sticky top-0 z-40 bg-gradient-to-r from-purple-800 to-indigo-900 shadow-md border-b border-indigo-800">

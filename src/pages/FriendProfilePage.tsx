@@ -15,7 +15,6 @@ export default function FriendProfilePage() {
     useAuth0();
   const [token, setToken] = useState<string | null>(null);
 
-  // 🔹 Pobranie tokena z Auth0
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -27,12 +26,10 @@ export default function FriendProfilePage() {
       });
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  // 🔹 Ustawienia dla requestów Orvala
   const requestOptions = token
     ? { request: { headers: { Authorization: `Bearer ${token}` } } }
     : {};
 
-  // 🔹 Pobranie profilu (Orval: id, params?, options)
   const {
     data: profile,
     isLoading: loadingProfile,
@@ -43,7 +40,6 @@ export default function FriendProfilePage() {
     ...requestOptions,
   });
 
-  // 🔹 Pobranie albumów użytkownika (Orval: id, params?, options)
   const {
     data: userAlbums,
     isLoading: loadingAlbums,
@@ -54,7 +50,6 @@ export default function FriendProfilePage() {
     ...requestOptions,
   });
 
-  // 🔹 refetch po zdobyciu tokena
   useEffect(() => {
     if (token) {
       refetchProfile();
@@ -62,7 +57,6 @@ export default function FriendProfilePage() {
     }
   }, [token, refetchProfile, refetchAlbums]);
 
-  // 🔹 Jeśli niezalogowany
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-white">
@@ -98,7 +92,6 @@ export default function FriendProfilePage() {
       normalizedProfile.AvatarUrl,
   };
 
-  // Normalizacja albumów: zwróć obiekt pasujący do AlbumCard (camelCase)
   const albumsList = useMemo(() => {
     if (!rawAlbumsList || !Array.isArray(rawAlbumsList)) return [];
     return rawAlbumsList.map((ua: any) => {
@@ -147,7 +140,6 @@ export default function FriendProfilePage() {
     });
   }, [rawAlbumsList]);
 
-  // Normalizacja recenzji
   const reviews = useMemo(() => {
     if (!rawReviews || !Array.isArray(rawReviews)) return [];
     return rawReviews.map((r: any) => {
@@ -173,7 +165,6 @@ export default function FriendProfilePage() {
     });
   }, [rawReviews]);
 
-  // 🔹 loading
   if (
     loadingProfile ||
     loadingAlbums ||
@@ -188,7 +179,6 @@ export default function FriendProfilePage() {
     );
   }
 
-  // 🔹 błąd
   if (errorProfile || errorAlbums) {
     return (
       <p className="text-center text-red-400 mt-8">
@@ -240,7 +230,6 @@ export default function FriendProfilePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Placeholder buttons - keep simple */}
           <button
             onClick={() => navigate(`/chat/${friendForHeader.id ?? id}`)}
             className="px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700 transition"
@@ -250,7 +239,6 @@ export default function FriendProfilePage() {
         </div>
       </div>
 
-      {/* Main content: left = albums, right = reviews */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <h2 className="text-xl font-bold mb-3">Albumy użytkownika</h2>
@@ -266,7 +254,6 @@ export default function FriendProfilePage() {
             </div>
           )}
 
-          {/* Favorite albums (optional) */}
           {rawFavoriteAlbums && rawFavoriteAlbums.length > 0 && (
             <div className="mt-6">
               <h3 className="font-semibold mb-2">Ulubione albumy</h3>

@@ -9,10 +9,7 @@ const App: React.FC = () => {
       <Toaster
         position="top-right"
         reverseOrder={false}
-        // container ma pointer-events-none żeby nie blokować kliknięć pod spodem,
-        // a same toasty mają pointer-events-auto żeby były interaktywne
         containerClassName="p-4 pointer-events-none"
-        // zwiększony z-index, żeby toasty nie były zasłonięte przez modale/overlaye
         containerStyle={{ zIndex: 11000 }}
         toastOptions={{
           className:
@@ -20,7 +17,6 @@ const App: React.FC = () => {
           duration: 4500,
           style: {
             backdropFilter: "blur(6px)",
-            // dodatkowy safety z-index na poziomie pojedynczego toasta
             zIndex: 11000,
           },
           success: {

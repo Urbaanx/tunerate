@@ -1808,6 +1808,19 @@
         "x-requiresAuth": true
       }
     },
+    "/api/Admin/clear-cache": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
     "/api/Albums": {
       "get": {
         "tags": [
@@ -2851,6 +2864,75 @@
         },
         "x-requiresAuth": true
       }
+    },
+    "/api/Users/profile/{userId}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Users/search": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
+    },
+    "/api/Users/password-reset": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "x-requiresAuth": true
+      }
     }
   },
   "components": {
@@ -2922,15 +3004,21 @@
         "additionalProperties": false
       },
       "AlbumDto": {
+        "required": [
+          "artist",
+          "title"
+        ],
         "type": "object",
         "properties": {
           "title": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
           },
           "artist": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
           },
           "artistId": {
             "type": "string",
@@ -3160,13 +3248,19 @@
         "additionalProperties": false
       },
       "ReviewDto": {
+        "required": [
+          "content"
+        ],
         "type": "object",
         "properties": {
           "content": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string"
           },
           "score": {
+            "maximum": 10,
+            "minimum": 1,
             "type": "integer",
             "format": "int32"
           }

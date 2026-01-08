@@ -32,7 +32,6 @@ export default function FriendsSearchPage() {
       }
     : { query: { enabled: false } };
 
-  // Orval search (disabled by default) — will be refetched on doSearch
   const searchQuery = useGetApiSocialSearch<any, unknown>(
     { query: query.trim(), limit: 40 },
     {
@@ -43,10 +42,8 @@ export default function FriendsSearchPage() {
     }
   );
 
-  // outgoing requests (to know which users already received an invitation)
   const outgoingQuery = useGetApiSocialRequestsOutgoing<any, unknown>();
 
-  // friends list (to know which users are already friends)
   const { data: friendsData, refetch: refetchFriends } = useGetApiSocialFriends<
     any,
     unknown
@@ -56,7 +53,6 @@ export default function FriendsSearchPage() {
     if (token) refetchFriends();
   }, [token, refetchFriends]);
 
-  // set of friend ids for quick lookup
   const friendsSet = useMemo(() => {
     const set = new Set<string>();
     const list = Array.isArray(friendsData)
@@ -71,7 +67,6 @@ export default function FriendsSearchPage() {
     return set;
   }, [friendsData]);
 
-  // map: receiverId -> friendshipId (server returns Receiver)
   const outgoingMap = useMemo(() => {
     const map = new Map<string, string>();
     const list = outgoingQuery.data ?? [];
@@ -99,7 +94,6 @@ export default function FriendsSearchPage() {
     },
   });
 
-  // DELETE mutation (withdraw outgoing request)
   const withdrawMutation = useDeleteApiSocialRequestsFriendshipId<any, unknown>(
     {
       request: token
@@ -217,7 +211,6 @@ export default function FriendsSearchPage() {
                 >
                   <div>
                     <p className="font-semibold">{u.nickname ?? u.Nickname}</p>
-                    <p className="text-sm text-gray-400">{uid}</p>
                   </div>
 
                   <div className="flex gap-2">

@@ -7,12 +7,8 @@ import {
 import AlbumCard from "../components/AlbumCard";
 
 const LandingPage: React.FC = () => {
-  const {
-    isAuthenticated,
-    user,
-    isLoading,
-    getAccessTokenSilently,
-  } = useAuth0();
+  const { isAuthenticated, user, isLoading, getAccessTokenSilently } =
+    useAuth0();
 
   const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
 
@@ -53,14 +49,13 @@ const LandingPage: React.FC = () => {
         if (err?.message) console.error("message:", err.message);
 
         console.error(
-          "Sprawdź: VITE_audience musi dokładnie zgadzać się z Identifier w Auth0 → APIs oraz Allowed Callback/Origins w aplikacji."
+          "Sprawdź: VITE_AUTH0_AUDIENCE"
         );
         setAccessToken(null);
       }
     })();
   }, [isAuthenticated, getAccessTokenSilently, user, audience]);
 
-  // <-- DODANE: loguj token przy każdej zmianie accessToken (do testów API)
   useEffect(() => {
     if (!accessToken) {
       console.log("Brak accessToken (niezalogowany lub token usunięty).");
@@ -74,17 +69,16 @@ const LandingPage: React.FC = () => {
 
     postUsersSync(undefined, {
       onSuccess: (res) => {
-        console.log("✅ User sync succeeded:", res);
+        console.log("User sync succeeded:", res);
         setSynced(true);
       },
       onError: (err) => {
-        console.error("❌ User sync failed:", err);
+        console.error("User sync failed:", err);
         setSynced(true);
       },
     });
   }, [isAuthenticated, accessToken, synced, postUsersSync]);
 
-  // --- preview from backend (3 random albums) ---
   const {
     data: previewData,
     isLoading: previewLoading,
@@ -208,6 +202,7 @@ const LandingPage: React.FC = () => {
                       coverUrl: a.coverUrl ?? a.CoverUrl ?? null,
                       releaseDate: a.releaseDate ?? a.ReleaseDate ?? null,
                     }}
+                    clickable={isAuthenticated}
                   />
                 </div>
               ))}

@@ -16,6 +16,7 @@ interface Album {
 interface AlbumCardProps {
   album: Album;
   onAddToCollection?: (album: Album) => void;
+  clickable?: boolean;
 }
 
 const formatDate = (dateStr?: string): string | null => {
@@ -32,28 +33,29 @@ const formatDate = (dateStr?: string): string | null => {
   return dateOnly || null;
 };
 
-const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
+const AlbumCard: React.FC<AlbumCardProps> = ({
+  album,
+  onAddToCollection,
+  clickable = true,
+}) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth0(); // don't redirect here
+  const { isAuthenticated } = useAuth0();
 
   const createAlbumMutation = usePostApiAlbums();
 
   const handleCardClick = async () => {
     try {
-      // jeśli mamy db id -> idziemy prosto
       if (album.id) {
         navigate(`/album/${album.id}`);
         return;
       }
 
-      // anonimowy użytkownik: podgląd — nie wywołujemy chronionego endpointu
       if (!isAuthenticated) {
         const previewId = album.externalId ?? encodeURIComponent(album.title);
         navigate(`/album/${previewId}`);
         return;
       }
 
-      // zalogowany użytkownik: wywołaj chroniony endpoint, utwórz w DB i przejdź
       const response = (await createAlbumMutation.mutateAsync({
         data: {
           title: album.title,
@@ -76,7 +78,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
         alert("Utworzono album, ale nie można było otworzyć strony albumu.");
       }
     } catch (err) {
-      console.error("❌ Błąd podczas otwierania szczegółów albumu:", err);
+      console.error("Błąd podczas otwierania szczegółów albumu:", err);
       alert("Nie udało się otworzyć strony albumu.");
     }
   };
@@ -93,11 +95,14 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onAddToCollection }) => {
   };
 
   const formattedDate = formatDate(album.releaseDate);
+  const clickableClass = clickable
+    ? "hover:scale-105 transform transition duration-300 cursor-pointer"
+    : "cursor-default";
 
   return (
     <div
-      onClick={handleCardClick}
-      className="bg-gray-900 bg-opacity-70 rounded-2xl shadow-lg overflow-hidden hover:scale-105 transform transition duration-300 flex flex-col cursor-pointer"
+      onClick={clickable ? handleCardClick : undefined}
+      className={`bg-gray-900 bg-opacity-70 rounded-2xl shadow-lg overflow-hidden ${clickableClass} flex flex-col`}
     >
       <div className="relative">
         {album.coverUrl ? (

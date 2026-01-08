@@ -128,7 +128,7 @@ const AppRouter: React.FC = () => {
             <Route
               path="/admin"
               element={
-                <AuthGuard>
+                <AuthGuard requireAdmin>
                   <AdminPage />
                 </AuthGuard>
               }

@@ -6,7 +6,7 @@ interface Props {
 
 const TrackPlayer: React.FC<Props> = ({ url }) => {
   const [playing, setPlaying] = useState(false);
-  const volume = 0.3; // domyślna głośność 30%
+  const volume = 0.3;
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -46,11 +46,9 @@ const TrackPlayer: React.FC<Props> = ({ url }) => {
     } else {
       audioRef.current.volume = volume;
       audioRef.current.play().catch(() => {
-        // ignore playback errors (autoplay policies etc.)
       });
       setPlaying(true);
 
-      // Powiadom pozostałe odtwarzacze, żeby się zatrzymały
       window.dispatchEvent(
         new CustomEvent("tunerate:trackplay", {
           detail: { source: audioRef.current },

@@ -13,14 +13,12 @@ export default function FriendRequestsPage() {
 
   const [token, setToken] = useState<string | null>(null);
 
-  // Pobierz token
   useEffect(() => {
     getAccessTokenSilently()
       .then((t) => setToken(t))
       .catch(() => setToken(null));
   }, [getAccessTokenSilently]);
 
-  // Konfiguracja Orvala (options jako 3-ci argument)
   const commonRequestOptions = {
     query: { enabled: !!token },
     request: token
@@ -28,17 +26,14 @@ export default function FriendRequestsPage() {
       : undefined,
   };
 
-  // INCOMING
   const incomingQuery = useGetApiSocialRequests<any, unknown>(
     commonRequestOptions
   );
 
-  // OUTGOING
   const outgoingQuery = useGetApiSocialRequestsOutgoing<any, unknown>(
     commonRequestOptions
   );
 
-  // Accept
   const acceptMutation = usePostApiSocialFriendsAcceptFriendshipId<
     any,
     unknown
@@ -51,7 +46,6 @@ export default function FriendRequestsPage() {
     },
   });
 
-  // Reject
   const rejectMutation = usePostApiSocialFriendsDeclineFriendshipId<
     any,
     unknown

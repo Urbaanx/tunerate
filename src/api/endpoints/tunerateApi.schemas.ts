@@ -27,10 +27,16 @@ export interface Album {
 }
 
 export interface AlbumDto {
-  /** @nullable */
-  title?: string | null;
-  /** @nullable */
-  artist?: string | null;
+  /**
+   * @minLength 0
+   * @maxLength 255
+   */
+  title: string;
+  /**
+   * @minLength 0
+   * @maxLength 255
+   */
+  artist: string;
   artistId?: string;
   /** @nullable */
   releaseDate?: string | null;
@@ -122,8 +128,15 @@ export interface Review {
 }
 
 export interface ReviewDto {
-  /** @nullable */
-  content?: string | null;
+  /**
+   * @minLength 0
+   * @maxLength 2000
+   */
+  content: string;
+  /**
+   * @minimum 1
+   * @maximum 10
+   */
   score?: number;
 }
 
@@ -289,6 +302,11 @@ sort?: string;
 };
 
 export type GetApiSocialSearchParams = {
+query?: string;
+limit?: number;
+};
+
+export type GetApiUsersSearchParams = {
 query?: string;
 limit?: number;
 };

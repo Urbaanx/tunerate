@@ -7,7 +7,7 @@ import {
 } from "../api/endpoints/tunerateApi";
 import AlbumCard from "../components/AlbumCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { toast } from "../utils/toast"; // <--- added
+import { toast } from "../utils/toast";
 
 const SearchPage: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -26,7 +26,6 @@ const SearchPage: React.FC = () => {
     useAuth0();
   const [token, setToken] = useState<string | null>(null);
 
-  // Token (if logged in)
   useEffect(() => {
     let mounted = true;
     if (isAuthenticated) {
@@ -41,7 +40,6 @@ const SearchPage: React.FC = () => {
     };
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  // Debounce wpisywania
   useEffect(() => {
     const timeout = setTimeout(() => {
       setActiveQuery(query.trim());
@@ -50,7 +48,6 @@ const SearchPage: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [query]);
 
-  // 🔹 Wyszukiwanie lokalne (zawsze dostępne, także dla niezalogowanych)
   const { data: localResults, isFetching: isFetchingLocal } =
     useGetApiAlbums<any>(
       {
@@ -60,17 +57,16 @@ const SearchPage: React.FC = () => {
         artist: artist || undefined,
         year: year ? parseInt(year) : undefined,
         genre: genre || undefined,
-        query: activeQuery || undefined, // backendowy parametr wyszukiwania
+        query: activeQuery || undefined,
       },
       {
         query: {
-          enabled: true, // allow searching without authentication
+          enabled: true,
           keepPreviousData: true,
         } as any,
       }
     );
 
-  // 🔹 Wyszukiwanie w MusicBrainz
   const {
     data: musicBrainzResults,
     isFetching: isFetchingMB,
@@ -79,14 +75,13 @@ const SearchPage: React.FC = () => {
     activeQuery ? { query: activeQuery, page, pageSize, sort } : undefined,
     {
       query: {
-        enabled: false, // wywołujemy ręcznie
+        enabled: false,
         keepPreviousData: true,
         retry: false,
       } as any,
     }
   );
 
-  // 🔹 Aktualizacja danych po zmianie wyników
   useEffect(() => {
     const localItems =
       (localResults as any)?.items ?? (localResults as any)?.Items ?? [];
@@ -95,13 +90,11 @@ const SearchPage: React.FC = () => {
       (localResults as any)?.TotalCount ??
       localItems.length;
 
-    // Nie uruchamiaj wyszukiwania w MusicBrainz dopóki lokalne wyniki są w trakcie pobierania.
     if (isFetchingLocal) {
       return;
     }
 
     if (activeQuery && localCount === 0) {
-      // nic lokalnie — pobieramy z MB
       refetchMB();
     } else {
       setAlbums(localItems);
@@ -114,7 +107,6 @@ const SearchPage: React.FC = () => {
     }
   }, [localResults, activeQuery, refetchMB, isFetchingLocal]);
 
-  // 🔹 Jeśli przyszły dane z MusicBrainz
   useEffect(() => {
     if (musicBrainzResults) {
       const items =
@@ -174,10 +166,10 @@ const SearchPage: React.FC = () => {
       <h1 className="text-4xl font-extrabold mb-6 text-center">
         {activeQuery
           ? "Wyniki wyszukiwania"
-          : "Przeglądaj albumy z bazy danych"}
+          : "Przeglądaj albumy"}
       </h1>
 
-      {/* 🔍 Wyszukiwanie */}
+      {/* Wyszukiwanie */}
       <div className="flex justify-center mb-6">
         <input
           type="text"
@@ -260,7 +252,7 @@ const SearchPage: React.FC = () => {
         ))}
       </div>
 
-      {/* 📄 Paginacja */}
+      {/* Paginacja */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center space-x-4 mt-6">
           <button

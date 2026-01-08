@@ -35,7 +35,6 @@ export default function SendAlbumRecommendationModal({
       .catch(() => setToken(null));
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  // pobierz listę znajomych — options jako 1-szy argument
   const {
     data: friendsData,
     isLoading: friendsLoading,
@@ -70,7 +69,6 @@ export default function SendAlbumRecommendationModal({
       return;
     }
     if (!token) {
-      // spróbuj pobrać token jeszcze raz
       try {
         const t = await getAccessTokenSilently();
         setToken(t);

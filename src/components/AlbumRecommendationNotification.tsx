@@ -4,7 +4,6 @@ type AlbumShape = {
   id?: string | number | null;
   title?: string | null;
   coverUrl?: string | null;
-  // różne możliwe kształty serializacji
   artist?: any;
   Artist?: any;
   artistName?: any;

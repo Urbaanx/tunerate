@@ -28,7 +28,6 @@ export default function NotificationsPage() {
       }
     : { query: { enabled: false } };
 
-  // Orval hooks (options object as first arg)
   const sharesQuery = useGetApiSocialShares<any, unknown>(requestOptions);
   const requestsQuery = useGetApiSocialRequests<any, unknown>(requestOptions);
 
@@ -76,7 +75,6 @@ export default function NotificationsPage() {
   const shares = sharesQuery.data ?? [];
   const requests = requestsQuery.data ?? [];
 
-  // normalize and merge into single notifications list
   type Notification = {
     type: "share" | "friendRequest";
     id: string;
@@ -123,7 +121,6 @@ export default function NotificationsPage() {
         {notifications.map((n) => {
           if (n.type === "share") {
             const s = n.payload;
-            // przekazujemy pełny obiekt albumu z payloadu (różne kształty możliwe)
             const albumPayload = s.album ?? s.Album ?? null;
             const from = {
               nickname:
@@ -160,7 +157,6 @@ export default function NotificationsPage() {
             );
           }
 
-          // friendRequest
           const r = n.payload;
           const requester =
             r.requester ?? r.Requester ?? r.from ?? r.From ?? {};

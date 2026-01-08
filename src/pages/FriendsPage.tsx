@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Loader2 } from "lucide-react";
@@ -14,7 +14,6 @@ export default function FriendsPage() {
   const [token, setToken] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Pobierz token
   useEffect(() => {
     if (!isAuthenticated) return;
     getAccessTokenSilently()
@@ -29,7 +28,6 @@ export default function FriendsPage() {
       }
     : { query: { enabled: false } };
 
-  // lista znajomych (Orval)
   const {
     data: friendsData,
     isLoading,
@@ -37,7 +35,6 @@ export default function FriendsPage() {
     refetch,
   } = useGetApiSocialFriends<any, unknown>(requestOptions);
 
-  // mutacja usuwania (Orval) — request option przekazywany do hooka
   const deleteFriendMutation = useDeleteApiSocialFriendsFriendId<any, unknown>({
     request: token
       ? { headers: { Authorization: `Bearer ${token}` } }

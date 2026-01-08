@@ -7,9 +7,11 @@ import {
   usePostApiUsersSync,
   usePutApiUsersNickname,
   useGetApiUsersStats,
+  usePostApiUsersPasswordReset,
 } from "../api/endpoints/tunerateApi";
 import AlbumCard from "../components/AlbumCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, Settings } from "lucide-react";
+import { toast } from "../utils/toast";
 
 const DashboardPage: React.FC = () => {
   const { isAuthenticated, user, loginWithRedirect, getAccessTokenSilently } =
@@ -22,6 +24,13 @@ const DashboardPage: React.FC = () => {
       ? { headers: { Authorization: `Bearer ${token}` } }
       : undefined,
   });
+
+  const { mutate: postUsersPasswordReset } = usePostApiUsersPasswordReset({
+    request: token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : undefined,
+  });
+
   const [synced, setSynced] = useState(false);
 
   useEffect(() => {
@@ -46,7 +55,7 @@ const DashboardPage: React.FC = () => {
           console.error("error_description:", err.error_description);
         if (err?.message) console.error("message:", err.message);
         console.error(
-          "Sprawdź: VITE_audience musi dokładnie zgadzać się z Identifier w Auth0 → APIs oraz Allowed Callback/Origins w aplikacji."
+          "Sprawdź: VITE_AUTH0_AUDIENCE w pliku .env oraz konfigurację aplikacji w Auth0."
         );
         if (mounted) setToken(null);
       });
@@ -60,11 +69,11 @@ const DashboardPage: React.FC = () => {
 
     postUsersSync(undefined, {
       onSuccess: (res) => {
-        console.log("✅ User sync succeeded:", res);
+        console.log("User sync succeeded:", res);
         setSynced(true);
       },
       onError: (err) => {
-        console.error("❌ User sync failed:", err);
+        console.error("User sync failed:", err);
         setSynced(true);
       },
     });
@@ -73,7 +82,6 @@ const DashboardPage: React.FC = () => {
   const { data: localUser, refetch: refetchLocalUser } =
     useGetApiUsersByAuth0idAuth0Id<any, unknown>(user?.sub ?? "");
 
-  // === Pobranie kolekcji użytkownika ===
   const {
     data: userAlbums,
     isLoading,
@@ -81,7 +89,6 @@ const DashboardPage: React.FC = () => {
     refetch,
   } = useGetApiUserAlbums<any, unknown>();
 
-  // === Pobranie rekomendacji z backendu ===
   const {
     data: recommendations,
     isLoading: isRecLoading,
@@ -110,7 +117,7 @@ const DashboardPage: React.FC = () => {
     ? localUser?.nickname ?? user?.username ?? user?.nickname ?? user?.email
     : user?.name ?? user?.email;
 
-  // === Nickname change modal state & hook ===
+
   const putNicknameMutation = usePutApiUsersNickname();
   const putNickname = putNicknameMutation.mutate;
 
@@ -143,12 +150,10 @@ const DashboardPage: React.FC = () => {
       {
         onSuccess: () => {
           setShowNicknameModal(false);
-          // refresh local user so UI reflects change
           refetchLocalUser?.();
         },
         onError: (err) => {
           console.error("Failed to update nickname:", err);
-          // still close or keep open depending on UX preference; here we close
           setShowNicknameModal(false);
         },
       }
@@ -166,7 +171,6 @@ const DashboardPage: React.FC = () => {
         ).toLocaleDateString("pl-PL")
       : null;
 
-  // === user stats hook ===
   const { data: userStats, isLoading: isStatsLoading } = useGetApiUsersStats<
     any,
     unknown
@@ -176,6 +180,45 @@ const DashboardPage: React.FC = () => {
       ? { headers: { Authorization: `Bearer ${token}` } }
       : undefined,
   });
+
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isPwdResetting, setIsPwdResetting] = useState(false);
+
+  const openPasswordModal = () => {
+    if (!isDbUser) {
+      toast(
+        "Zmiana hasła dostępna tylko dla użytkowników zarejestrowanych ręcznie.",
+        "info"
+      );
+      setShowSettingsMenu(false);
+      return;
+    }
+    setShowSettingsMenu(false);
+    setShowPasswordModal(true);
+  };
+
+  const handlePasswordReset = () => {
+    setIsPwdResetting(true);
+    postUsersPasswordReset(undefined, {
+      onSuccess: (data) => {
+        setShowPasswordModal(false);
+        if ((data as any)?.ticketUrl) {
+          window.open((data as any).ticketUrl, "_blank");
+          toast("Otwieram stronę resetu hasła.", "success");
+        } else {
+          toast("Wysłano żądanie resetu hasła. Sprawdź email.", "success");
+        }
+      },
+      onError: (err) => {
+        console.error("Password reset failed:", err);
+        toast("Nie udało się wysłać żądania resetu hasła.", "error");
+      },
+      onSettled: () => {
+        setIsPwdResetting(false);
+      },
+    });
+  };
 
   if (!isAuthenticated) {
     return (
@@ -195,7 +238,6 @@ const DashboardPage: React.FC = () => {
     ? recommendations!.recommendations
     : [];
 
-  // helper to read either PascalCase or camelCase
   const getStat = (pascal?: any, camel?: any, fallback?: any) => {
     if (pascal !== undefined && pascal !== null) return pascal;
     if (camel !== undefined && camel !== null) return camel;
@@ -216,13 +258,39 @@ const DashboardPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-extrabold">Twój panel</h1>
-            <button
-              onClick={openNicknameModal}
-              className="text-sm px-3 py-1 bg-white/10 hover:bg-white/20 rounded-md transition"
-              title="Zmień nazwę użytkownika"
-            >
-              Zmień nazwę
-            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowSettingsMenu((s) => !s)}
+                className="p-2 bg-white/10 rounded-md hover:bg-white/20 transition"
+                title="Ustawienia"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+
+              {showSettingsMenu && (
+                <div className="absolute right-0 mt-2 w-44 bg-black/80 border border-white/10 rounded shadow-lg z-40">
+                  <button
+                    onClick={() => {
+                      openNicknameModal();
+                      setShowSettingsMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-white/5"
+                  >
+                    Zmień nazwę
+                  </button>
+
+                  {isDbUser && (
+                    <button
+                      onClick={() => openPasswordModal()}
+                      className="w-full text-left px-3 py-2 hover:bg-white/5"
+                    >
+                      Zmień hasło
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <p className="text-gray-300 mt-1">Witaj, {displayName}! 👋</p>
           {albumCount > 0 && (
@@ -291,6 +359,40 @@ const DashboardPage: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Password reset modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowPasswordModal(false)}
+          />
+          <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-6 w-full max-w-md z-50">
+            <h3 className="text-lg font-semibold mb-2 text-white">
+              Zmień hasło
+            </h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Kliknij poniżej, aby otrzymać bezpieczny link do resetu hasła.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="px-4 py-2 rounded bg-white/10 hover:bg-white/20 text-white"
+                disabled={isPwdResetting}
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={handlePasswordReset}
+                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isPwdResetting}
+              >
+                {isPwdResetting ? "Wysyłanie..." : "Wyślij link resetu"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

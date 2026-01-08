@@ -37,7 +37,6 @@ export default function ChatPage() {
     },
   });
 
-  // 🔹 Pobranie tokena
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -49,7 +48,6 @@ export default function ChatPage() {
       });
   }, [isAuthenticated, getAccessTokenSilently]);
 
-  // 🔹 Konfiguracja zapytania Orvala (przekazywane jako 3-ci argument)
   const friendsQueryOptions = token
     ? {
         request: { headers: { Authorization: `Bearer ${token}` } },
@@ -64,12 +62,10 @@ export default function ChatPage() {
     refetch,
   } = useGetApiSocialFriends<any, unknown>(friendsQueryOptions);
 
-  // 🔹 Odświeżenie danych po zdobyciu tokena
   useEffect(() => {
     if (token) refetch();
   }, [token, refetch]);
 
-  // jeśli użytkownik wszedł pod /chat/:id — ustaw selectedFriend (znajomy z listy lub minimalny obiekt)
   useEffect(() => {
     if (!paramId) return;
     if (selectedFriend && String(selectedFriend.id) === String(paramId)) return;
@@ -80,18 +76,18 @@ export default function ChatPage() {
         return;
       }
     }
-    // fallback: minimalny obiekt z id (ChatWindow używa tylko friend.id)
+
     setSelectedFriend({ id: paramId });
   }, [paramId, friends, selectedFriend]);
 
-  // gdy zmienia się wybrany znajomy — oznacz wszystkie jego wiadomości jako odczytane
+
   useEffect(() => {
     if (!selectedFriend?.id) return;
-    // mark read messages from this friend to me
+
     markReadMutation.mutate({ otherUserId: String(selectedFriend.id) });
   }, [selectedFriend?.id]);
 
-  // 🔹 SignalR
+
   useEffect(() => {
     if (!token) return;
 
@@ -108,7 +104,6 @@ export default function ChatPage() {
       .start()
       .then(async () => {
         try {
-          // explicite rejestrujemy połączenie po stronie serwera
           await hub.invoke("RegisterConnection");
           console.debug("SignalR: registered connection with hub");
         } catch (err) {
@@ -118,7 +113,6 @@ export default function ChatPage() {
       })
       .catch((err) => {
         console.error("SignalR start error:", err);
-        // ensure no stale connection set
         setConnection(null);
       });
 
@@ -128,16 +122,13 @@ export default function ChatPage() {
     };
   }, [token]);
 
-  // 🔹 Obsługa zdarzeń SignalR
   useEffect(() => {
     if (!connection) return;
 
     const handler = (payload: any) => {
       console.debug("FriendPresenceChanged", payload);
-      // odśwież listę znajomych (orval query refetch)
       refetch();
 
-      // jeśli aktualnie wybrany znajomy to ten, którego dotyczy zmiana — zaktualizuj local state
       try {
         const userId = payload?.UserId ?? payload?.userId;
         const isOnline = payload?.IsOnline ?? payload?.isOnline;
@@ -157,7 +148,6 @@ export default function ChatPage() {
     };
   }, [connection, refetch, selectedFriend]);
 
-  // 🔹 Wymagane zalogowanie
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-white">
@@ -172,7 +162,6 @@ export default function ChatPage() {
     );
   }
 
-  // 🔹 Ładowanie
   if (isLoading || !friends) {
     return (
       <div className="flex justify-center items-center h-screen text-white">
@@ -182,7 +171,6 @@ export default function ChatPage() {
     );
   }
 
-  // 🔹 Błąd
   if (isError) {
     return (
       <p className="text-center text-red-400 mt-8">

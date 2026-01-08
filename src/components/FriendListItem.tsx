@@ -4,7 +4,6 @@ type Friend = {
   id?: string | number;
   nickname: string;
   status?: string;
-  // akceptujemy kilka najczęściej spotykanych pól dla avatara
   avatarUrl?: string;
   picture?: string;
 };
@@ -33,10 +32,8 @@ export default function FriendListItem({
   const status = friend.status ?? "Offline";
   const isOnline = String(status).toLowerCase() === "online";
 
-  // avatar: prefer avatarUrl then picture
   const avatar = friend.avatarUrl ?? friend.picture ?? undefined;
 
-  // compute initials fallback
   const initials =
     friend.nickname
       ?.split(" ")
@@ -53,7 +50,6 @@ export default function FriendListItem({
       onClick={() => onClick?.(friend.id)}
       onKeyDown={handleKey}
     >
-      {/* avatar area: image if present, otherwise initials placeholder */}
       {avatar ? (
         <img
           src={avatar}

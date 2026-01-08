@@ -117,8 +117,7 @@ const Footer: React.FC = () => {
 
       <div className="bg-gradient-to-r from-indigo-900/5 to-transparent">
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-20 py-3 text-xs text-gray-500 text-center">
-          Built with <span aria-hidden>❤</span> · Przyjazne API · Dane
-          przykładowe
+          Built with <span aria-hidden>❤</span> · Przyjazne API
         </div>
       </div>
     </footer>

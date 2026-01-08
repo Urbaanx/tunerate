@@ -23,7 +23,7 @@ const ContactPage: React.FC = () => {
               +48 123 456 789
             </a>
           </li>
-          <li>Adres (fikcyjny): ul. Muzyczna 7, 00-001 Warszawa, Polska</li>
+          <li>Adres: ul. Muzyczna 7, 00-001 Warszawa, Polska</li>
         </ul>
 
         <p className="text-gray-400 mt-4 text-sm">

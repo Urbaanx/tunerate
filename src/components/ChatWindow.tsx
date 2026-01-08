@@ -20,7 +20,6 @@ export default function ChatWindow({
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Orval query - fetch chat history for selected friend
   const {
     data: historyData,
     refetch: refetchHistory,
@@ -33,10 +32,8 @@ export default function ChatWindow({
     }
   );
 
-  // Orval mutation - send message
   const sendMutation = usePostApiChatSendToUserId();
 
-  // Sync historyData to local messages (normalize shape)
   useEffect(() => {
     if (!historyData) {
       setMessages([]);
@@ -55,12 +52,10 @@ export default function ChatWindow({
     setMessages(normalized);
   }, [historyData, friend?.id]);
 
-  // Receive messages from SignalR (server sends "ChatMessageReceived")
   useEffect(() => {
     if (!connection || !friend?.id) return;
 
     const handler = (payload: any) => {
-      // eslint-disable-next-line no-console
       console.debug(
         "ChatMessageReceived payload:",
         payload,
@@ -117,12 +112,10 @@ export default function ChatWindow({
           },
         ]);
 
-        // jeśli wiadomość pochodzi od aktualnie otwartego znajomego — oznacz jako odczytaną
         if (fromIdStr === friendIdStr && typeof markRead === "function") {
           try {
             markRead(String(friend.id));
           } catch (e) {
-            // eslint-disable-next-line no-console
             console.warn("markRead failed", e);
           }
         }
@@ -141,13 +134,11 @@ export default function ChatWindow({
     if (!input.trim() || !friend?.id) return;
 
     try {
-      // use Orval mutation: { toUserId, data: { content } }
       await sendMutation.mutateAsync({
         toUserId: String(friend.id),
         data: { content: input },
       });
 
-      // optimistic UI update
       setMessages((prev) => [
         ...prev,
         {
@@ -161,7 +152,6 @@ export default function ChatWindow({
       ]);
 
       setInput("");
-      // optionally refetch history to get persisted data / IDs
       refetchHistory();
     } catch (err) {
       console.error("Send message error", err);

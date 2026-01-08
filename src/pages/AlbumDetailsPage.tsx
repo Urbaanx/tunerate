@@ -195,7 +195,7 @@ const AlbumDetailsPage: React.FC = () => {
       await refetchUserAlbums();
       if (refetchReviews) await refetchReviews();
     } catch (err) {
-      console.error("❌ Błąd przy aktualizacji kolekcji:", err);
+      console.error("Błąd przy aktualizacji kolekcji:", err);
       toast("Nie udało się zaktualizować kolekcji.", "error");
     }
   };
@@ -212,7 +212,7 @@ const AlbumDetailsPage: React.FC = () => {
       await refetchReviews();
       await refetchAlbum();
     } catch (e) {
-      console.error("❌ Błąd przy dodawaniu recenzji:", e);
+      console.error("Błąd przy dodawaniu recenzji:", e);
     }
   };
 
@@ -356,7 +356,7 @@ const AlbumDetailsPage: React.FC = () => {
                 {isInCollection ? "Usuń z kolekcji" : "Dodaj do kolekcji"}
               </button>
 
-              {/* Poleć znajomemu - dostępne, gdy album jest załadowany */}
+
               <button
                 onClick={() => {
                   if (!isAuthenticated) {
