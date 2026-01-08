@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 from lightfm import LightFM
 from lightfm.data import Dataset
+from lightfm.evaluation import precision_at_k
+from lightfm.evaluation import auc_score
+from lightfm.cross_validation import random_train_test_split
 
 class CollaborativeRecommender:
     def __init__(self):
@@ -14,11 +17,8 @@ class CollaborativeRecommender:
         self.trained = False
 
     def train(self, df_reviews, df_albums):
-        """
-        Trenuje model LightFM na podstawie ocen użytkowników.
-        """
         if df_reviews.empty or df_albums.empty:
-            print("⚠️ Brak danych do trenowania CF.")
+            print("Brak danych do trenowania CF.")
             self.trained = False
             return
 
@@ -36,14 +36,25 @@ class CollaborativeRecommender:
             [(row.UserId, row.AlbumId, float(row.Score)) for _, row in df_reviews.iterrows()]
         )
 
-        model = LightFM(loss='warp')
-        model.fit(interactions, epochs=20, num_threads=4)
+        train_interactions, test_interactions = random_train_test_split(interactions, test_percentage=0.25, random_state=np.random.RandomState(42))
 
+        model = LightFM(loss='warp')
+        model.fit(train_interactions, epochs=20, num_threads=4)
+
+        train_precision = precision_at_k(model, train_interactions, k=5).mean()
+        train_auc = auc_score(model, train_interactions).mean()
+        print(f"CF Model - Train Precision, k=5: {train_precision:.4f}, Train AUC: {train_auc:.4f}")
+
+        test_precision = precision_at_k(model, test_interactions, train_interactions=train_interactions, k=5).mean()
+        test_auc = auc_score(model, test_interactions, train_interactions=train_interactions).mean()
+        print(f"CF Model - Test Precision, k=5: {test_precision:.4f}, Test AUC: {test_auc:.4f}")
+
+        model.fit(interactions, epochs=20, num_threads=4)
         self.model = model
         self.dataset = dataset
         self.user_id_map, self.album_id_map, self.user_id_inv, self.album_id_inv = self._create_id_maps(dataset)
         self.trained = True
-        print("✅ Model Collaborative Filtering (LightFM) wytrenowany.")
+        print("Model Collaborative Filtering (LightFM) wytrenowany.")
 
     def _create_id_maps(self, dataset):
         user_id_map, user_feature_map, album_id_map, album_feature_map = dataset.mapping()
@@ -52,18 +63,13 @@ class CollaborativeRecommender:
         return user_id_map, album_id_map, user_id_inv, album_id_inv
 
     def recommend(self, user_id, df_albums, df_artists=None, top_n=5, df_reviews=None):
-        """
-        Zwraca top N rekomendacji dla użytkownika.
-        Jeśli df_reviews podane, usuwamy albumy, które użytkownik już ocenił.
-        Zwracamy również pole 'score' (surowa predykcja LightFM).
-        """
         if not self.trained or self.model is None:
-            print("⚠️ Model CF nie został wytrenowany.")
+            print("Model CF nie został wytrenowany.")
             return []
 
         user_id = str(user_id)
         if user_id not in self.user_id_map:
-            print(f"⚠️ Brak danych dla użytkownika {user_id}.")
+            print(f"Brak danych dla użytkownika {user_id}.")
             return []
 
         user_idx = self.user_id_map[user_id]
@@ -93,7 +99,6 @@ class CollaborativeRecommender:
         recs["__order"] = recs["Id"].apply(lambda x: top_ids.index(x) if x in top_ids else 9999)
         recs = recs.sort_values("__order").drop(columns=["__order"])
 
-        # 🔹 Dołącz nazwę artysty
         if df_artists is not None and not df_artists.empty and "Id" in df_artists.columns:
             recs = recs.merge(
                 df_artists[["Id", "Name"]],

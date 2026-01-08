@@ -14,23 +14,23 @@ logger = logging.getLogger("tunerate")
 content_recommender = ContentBasedRecommender()
 collab_recommender = CollaborativeRecommender()
 
-REBUILD_INTERVAL_SECONDS = int(os.getenv("REBUILD_INTERVAL_SECONDS", "3600"))  # domyślnie 1h
+REBUILD_INTERVAL_SECONDS = int(os.getenv("REBUILD_INTERVAL_SECONDS", "3600"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 Uruchamiam aplikację FastAPI – lifespan start")
+    logger.info("Uruchamiam aplikację FastAPI")
     stop_event = asyncio.Event()
 
     async def retrain_loop(stop_evt: asyncio.Event):
         while not stop_evt.is_set():
             try:
-                logger.info("🔄 Periodic retrain: pobieranie danych i trenowanie modeli...")
+                logger.info("Retrain: pobieranie danych i trenowanie modeli...")
                 df_reviews, df_albums, df_tags, df_user_albums, df_artists = await asyncio.to_thread(fetch_all_data)
                 await asyncio.to_thread(content_recommender.train, df_reviews, df_albums, df_tags, df_user_albums, df_artists)
                 await asyncio.to_thread(collab_recommender.train, df_reviews, df_albums)
-                logger.info("✅ Periodic retrain: zakończono.")
+                logger.info("Retrain: zakończono.")
             except Exception:
-                logger.exception("❌ Błąd podczas periodicznego trenowania modeli")
+                logger.exception("Błąd podczas trenowania modeli")
             try:
                 await asyncio.wait_for(stop_evt.wait(), timeout=REBUILD_INTERVAL_SECONDS)
             except asyncio.TimeoutError:
@@ -38,25 +38,25 @@ async def lifespan(app: FastAPI):
 
     try:
         df_reviews, df_albums, df_tags, df_user_albums, df_artists = fetch_all_data()
-        logger.info("🔄 Trenowanie systemów rekomendacji (initial)...")
+        logger.info("Trenowanie systemów rekomendacji")
         await asyncio.to_thread(content_recommender.train, df_reviews, df_albums, df_tags, df_user_albums, df_artists)
         await asyncio.to_thread(collab_recommender.train, df_reviews, df_albums)
-        logger.info("✅ Systemy rekomendacji gotowe (initial).")
+        logger.info("Systemy rekomendacji gotowe")
 
         task = asyncio.create_task(retrain_loop(stop_event))
         app.state._retrain_task = task
         app.state._retrain_stop = stop_event
     except Exception:
-        logger.exception("❌ Błąd podczas trenowania modeli (initial)")
+        logger.exception("Błąd podczas trenowania modeli")
     yield
-    logger.info("🛑 Zamykam aplikację FastAPI – lifespan end")
+    logger.info("Zamykam aplikację FastAPI")
     try:
         stop_event.set()
         task = getattr(app.state, "_retrain_task", None)
         if task is not None:
             await asyncio.wait_for(task, timeout=10.0)
     except asyncio.TimeoutError:
-        logger.warning("⚠️ Retrain task did not stop in time, cancelling...")
+        logger.warning("Retrain nie zakończył się na czas, anuluję...")
         if task is not None:
             task.cancel()
             try:
@@ -97,8 +97,9 @@ def recommend_for_album(album_id: str, top_n: int = 5):
 @app.get("/recommend/hybrid/{user_id}")
 def recommend_hybrid(user_id: str, top_n: int = 5, alpha: float = 0.5):
     """
-    Hybrid recommendations:  alpha in [0,1] weights collaborative (alpha) vs content-based (1-alpha).
-    Returns top_n combined recommendations for a user.
+    Hybrydowe rekomendacje: alpha w [0,1] określa wagę podejścia collaborative (alpha)
+    względem podejścia content-based (1-alpha).
+    Zwraca top_n połączonych rekomendacji dla użytkownika.
     """
     try:
         alpha = float(alpha)
@@ -112,7 +113,6 @@ def recommend_hybrid(user_id: str, top_n: int = 5, alpha: float = 0.5):
         user_reviews_count = int(df_reviews[df_reviews.get("UserId").astype(str) == str(user_id)].shape[0])
     except Exception:
         user_reviews_count = 0
-    # próg, przy którym CF ma pełne zaufanie (np. 5 recenzji)
     cf_confidence_threshold = 5.0
     cf_confidence = min(1.0, user_reviews_count / cf_confidence_threshold)
     effective_alpha = alpha * cf_confidence
@@ -125,36 +125,32 @@ def recommend_hybrid(user_id: str, top_n: int = 5, alpha: float = 0.5):
     if content_recommender.trained:
         content_recs = content_recommender.recommend(user_id, df_reviews, df_albums, df_tags, df_user_albums, top_n=pool_size)
     else:
-        logger.info("⚠️ Content-based nie wytrenowany dla hybrydowego.")
+        logger.info("Content-based nie został wytrenowany dla modelu hybrydowego.")
 
     if collab_recommender.trained:
         collab_recs = collab_recommender.recommend(user_id, df_albums, df_artists, top_n=pool_size, df_reviews=df_reviews)
     else:
-        logger.info("⚠️ Collaborative nie wytrenowany dla hybrydowego.")
+        logger.info("Collaborative nie został wytrenowany dla modelu hybrydowego.")
 
     if not content_recs and not collab_recs:
         return {"type": "hybrid", "user_id": user_id, "recommendations": [], "note": "Brak wytrenowanych modeli lub danych dla użytkownika."}
 
-    # --- Budujemy mapy surowych score'ów (oparte o rank) dla obu źródeł ---
     def build_rank_map(recs):
         rank_map = {}
         n = len(recs)
         if n == 0:
             return rank_map
-        # preferuj użycie istniejących pól podobieństwa/punktacji jeśli są
         raw_scores = []
         for idx, r in enumerate(recs):
             aid = str(r.get("id") or r.get("Id") or r.get("albumId") or "")
             if not aid:
                 continue
-            # jeśli model zwrócił już 'similarity' lub 'score', użyjemy tego jako surowego score
             if "similarity" in r:
                 raw = float(r.get("similarity") or 0.0)
             elif "score" in r:
                 raw = float(r.get("score") or 0.0)
             else:
-                # fallback: liniowy rank-based score (większy = lepszy)
-                raw = (n - 1 - idx) / max(1, (n - 1))  # w [0,1], top=1, bottom=0
+                raw = (n - 1 - idx) / max(1, (n - 1))
             rank_map[aid] = raw
             raw_scores.append(raw)
         return rank_map
@@ -196,11 +192,9 @@ def recommend_hybrid(user_id: str, top_n: int = 5, alpha: float = 0.5):
     for aid, val in collab_norm.items():
         scores[aid] = scores.get(aid, 0.0) + collab_weight * float(val)
 
-    # Posortuj wg skumulowanego score i wybierz top_n
     sorted_ids = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     top_ids = [k for k, _ in sorted_ids[:top_n]]
 
-    # Zbuduj listę wyników z dostępnych pól (wypełnij z df_albums jeśli potrzeba)
     final_recs = []
     df_albums_local = df_albums.copy()
     if "Id" in df_albums_local.columns:
@@ -212,14 +206,12 @@ def recommend_hybrid(user_id: str, top_n: int = 5, alpha: float = 0.5):
             row = df_albums_local[df_albums_local["Id"] == aid]
             if not row.empty:
                 row = row.iloc[0].to_dict()
-                # dopasowanie nazw kolumn do formatu API
                 rec.setdefault("id", row.get("Id"))
                 rec.setdefault("title", row.get("Title"))
                 rec.setdefault("artistId", row.get("ArtistId"))
                 rec.setdefault("releaseDate", row.get("ReleaseDate"))
                 rec.setdefault("externalId", row.get("ExternalId"))
                 rec.setdefault("coverUrl", row.get("CoverUrl"))
-        # spróbuj dołączyć nazwę artysty, jeśli jest dostępna w df_artists
         if rec.get("artist") in (None, "") and df_artists is not None and not df_artists.empty:
             try:
                 artist_row = df_artists[df_artists["Id"].astype(str) == str(rec.get("artistId"))]
@@ -227,7 +219,6 @@ def recommend_hybrid(user_id: str, top_n: int = 5, alpha: float = 0.5):
                     rec["artist"] = artist_row.iloc[0].get("Name")
             except Exception:
                 pass
-        # dodaj ostateczny score
         rec["hybridScore"] = round(float(scores.get(aid, 0.0)), 4)
         final_recs.append(rec)
 

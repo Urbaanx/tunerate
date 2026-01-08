@@ -8,16 +8,18 @@ class ContentBasedRecommender:
 
     def train(self, df_reviews, df_albums, df_tags, df_user_albums=None, df_artists=None):
         if df_albums.empty or df_tags.empty:
-            print("⚠️ Brak danych do trenowania systemu.")
+            print("Brak danych do trenowania systemu.")
             self.trained = False
             return
 
+        # Agregacja tagów dla każdego albumu
         tag_vectors = (
             df_tags.groupby("AlbumId")["Name"]
             .apply(lambda tags: " ".join(tags))
             .reset_index()
         )
 
+        # Tworzenie macierzy cech na podstawie tagów
         tag_matrix = tag_vectors["Name"].str.get_dummies(sep=" ")
         self.album_features = pd.concat([tag_vectors[["AlbumId"]], tag_matrix], axis=1)
 
@@ -34,11 +36,11 @@ class ContentBasedRecommender:
         self.df_artists = df_artists if df_artists is not None else pd.DataFrame()
 
         self.trained = True
-        print("✅ System rekomendacji oparty o tagi gotowy.")
+        print("System rekomendacji oparty o tagi gotowy.")
 
     def recommend(self, user_id, df_reviews, df_albums, df_tags, df_user_albums=None, top_n=5):
         if not self.trained or self.album_features is None:
-            print("⚠️ System nie został wytrenowany.")
+            print("System nie został wytrenowany.")
             return []
 
         user_id = str(user_id)
@@ -57,10 +59,10 @@ class ContentBasedRecommender:
             if "AlbumId" in df_user_albums_local.columns:
                 df_user_albums_local["AlbumId"] = df_user_albums_local["AlbumId"].astype(str)
             user_albums = df_user_albums_local[df_user_albums_local["UserId"] == user_id]["AlbumId"].unique()
-            print(f"ℹ️ Użytkownik {user_id} ma {len(user_albums)} albumów w kolekcji (brak recenzji).")
+            print(f"Użytkownik {user_id} ma {len(user_albums)} albumów w kolekcji (brak recenzji).")
 
         if len(user_albums) == 0:
-            print(f"⚠️ Brak danych dla użytkownika {user_id}.")
+            print(f"Brak danych dla użytkownika {user_id}.")
             return []
 
         user_features = self.album_features[self.album_features["AlbumId"].isin(user_albums)].drop(columns=["AlbumId"])
@@ -128,13 +130,13 @@ class ContentBasedRecommender:
     def recommend_similar(self, album_id: str, df_albums, df_tags, df_artists=None, top_n: int = 5):
         """Zwraca podobne albumy na podstawie tagów."""
         if not self.trained or self.album_features is None:
-            print("⚠️ System nie został wytrenowany.")
+            print("System nie został wytrenowany.")
             return []
 
         album_id = str(album_id)
 
         if album_id not in self.album_features["AlbumId"].values:
-            print(f"⚠️ Album {album_id} nie znajduje się w danych tagów.")
+            print(f"Album {album_id} nie znajduje się w danych tagów.")
             return []
 
         tag_vectors = self.album_features.set_index("AlbumId")
