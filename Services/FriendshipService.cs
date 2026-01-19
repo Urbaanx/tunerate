@@ -73,17 +73,32 @@ namespace tunerate_api.Services
             await _context.SaveChangesAsync();
 
             var target = await _context.Users.FindAsync(toUserId);
+
+            var toUserDto = target != null
+                ? new { Id = target.Id, Nickname = target.Nickname, Auth0Id = target.Auth0Id }
+                : new { Id = toUserId, Nickname = (string?)null, Auth0Id = (string?)null };
+
             if (target != null)
             {
                 await _hub.Clients.Group(target.Auth0Id).SendAsync("FriendRequestReceived", new
                 {
                     FriendshipId = friendship.Id,
                     FromUser = new { from.Id, from.Nickname, from.Auth0Id },
-                    friendship.CreatedAt
+                    ToUser = toUserDto,
+                    Status = friendship.Status,
+                    CreatedAt = friendship.CreatedAt
                 });
             }
 
-            return (true, null, friendship);
+            var payload = new
+            {
+                FriendshipId = friendship.Id,
+                FromUser = new { from.Id, from.Nickname, from.Auth0Id },
+                ToUser = toUserDto,
+                Status = friendship.Status,
+                CreatedAt = friendship.CreatedAt
+            };
+            return (true, null, payload);
         }
 
         public async Task<(bool Success, string? Error, object? Payload)> AcceptFriendRequestAsync(string auth0Id, Guid friendshipId)
@@ -110,7 +125,14 @@ namespace tunerate_api.Services
                 });
             }
 
-            return (true, null, f);
+            var payload = new
+            {
+                FriendshipId = f.Id,
+                ByUser = new { current.Id, current.Nickname, current.Auth0Id },
+                Status = f.Status,
+                CreatedAt = f.CreatedAt
+            };
+            return (true, null, payload);
         }
 
         public async Task<(bool Success, string? Error, object? Payload)> DeclineFriendRequestAsync(string auth0Id, Guid friendshipId)
@@ -126,7 +148,13 @@ namespace tunerate_api.Services
             f.Status = FriendshipStatus.Declined;
             await _context.SaveChangesAsync();
 
-            return (true, null, f);
+            var payload = new
+            {
+                FriendshipId = f.Id,
+                Status = f.Status,
+                UpdatedAt = DateTime.UtcNow
+            };
+            return (true, null, payload);
         }
 
         public async Task<IEnumerable<object>?> GetFriendsAsync(string auth0Id, IPresenceService presence)

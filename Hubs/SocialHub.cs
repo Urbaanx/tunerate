@@ -134,34 +134,4 @@ public class SocialHub : Hub
 
         await Clients.Caller.SendAsync("Registered", auth0Id);
     }
-    
-    public async Task SendFriendRequest(string targetAuth0Id, Guid friendshipId)
-    {
-        await Clients.Group(targetAuth0Id).SendAsync("FriendRequestReceived", new
-        {
-            FriendshipId = friendshipId,
-            FromAuth0Id = GetAuth0Id(),
-            Timestamp = DateTime.UtcNow
-        });
-    }
-
-    public async Task FriendRequestAccepted(string targetAuth0Id, Guid friendshipId)
-    {
-        await Clients.Group(targetAuth0Id).SendAsync("FriendRequestAccepted", new
-        {
-            FriendshipId = friendshipId,
-            ByAuth0Id = GetAuth0Id(),
-            Timestamp = DateTime.UtcNow
-        });
-    }
-
-    public async Task SendAlbumShare(string toAuth0Id, object sharePayload)
-    {
-        await Clients.Group(toAuth0Id).SendAsync("AlbumShareReceived", sharePayload);
-    }
-
-    public async Task SendMessage(string toAuth0Id, object messagePayload)
-    {
-        await Clients.Group(toAuth0Id).SendAsync("ChatMessageReceived", messagePayload);
-    }
 }
