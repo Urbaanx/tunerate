@@ -92,7 +92,7 @@ export default function ChatPage() {
     if (!token) return;
 
     const apiUrl =
-      import.meta.env.VITE_AXIOS_BASE_URL_API ?? "http://localhost:5000";
+      import.meta.env.VITE_AXIOS_BASE_URL_API;
     const hub = new HubConnectionBuilder()
       .withUrl(`${apiUrl}/hubs/social`, {
         accessTokenFactory: () => token,
@@ -130,8 +130,8 @@ export default function ChatPage() {
       refetch();
 
       try {
-        const userId = payload?.UserId ?? payload?.userId;
-        const isOnline = payload?.IsOnline ?? payload?.isOnline;
+        const userId = payload?.userId;
+        const isOnline = payload?.isOnline;
         if (selectedFriend && String(selectedFriend.id) === String(userId)) {
           setSelectedFriend((s: any) => ({
             ...s,

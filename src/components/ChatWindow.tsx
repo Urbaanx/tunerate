@@ -62,31 +62,12 @@ export default function ChatWindow({
         "friendId:",
         friend.id
       );
-
       const id = payload?.Id ?? payload?.id;
-      const content =
-        payload?.Content ??
-        payload?.content ??
-        payload?.message ??
-        payload?.Message;
+      const content = payload?.content
 
-      const fromUserId =
-        payload?.fromUser?.id ??
-        payload?.fromUser?.Id ??
-        payload?.FromUser?.id ??
-        payload?.FromUser?.Id ??
-        payload?.fromUserId ??
-        payload?.FromUserId ??
-        null;
+      const fromUserId = payload?.fromUser?.id 
 
-      const toUserId =
-        payload?.toUserId ??
-        payload?.ToUserId ??
-        payload?.toUser?.id ??
-        payload?.toUser?.Id ??
-        payload?.ToUser?.id ??
-        payload?.ToUser?.Id ??
-        null;
+      const toUserId = payload?.toUserId
 
       const fromIdStr = fromUserId != null ? String(fromUserId) : null;
       const toIdStr = toUserId != null ? String(toUserId) : null;

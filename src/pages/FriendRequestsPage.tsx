@@ -107,9 +107,6 @@ export default function FriendRequestsPage() {
                       <p className="text-lg font-medium">
                         {requester.nickname ?? requester.Nickname}
                       </p>
-                      <p className="text-sm text-gray-400">
-                        {requester.id ?? requester.Id}
-                      </p>
                     </div>
 
                     <div className="flex gap-2">
@@ -158,9 +155,6 @@ export default function FriendRequestsPage() {
                     <div>
                       <p className="text-lg font-medium">
                         {receiver.nickname ?? receiver.Nickname}
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        {receiver.id ?? receiver.Id}
                       </p>
                     </div>
                   </div>

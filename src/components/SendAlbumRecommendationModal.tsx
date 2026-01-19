@@ -92,7 +92,7 @@ export default function SendAlbumRecommendationModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
       <div className="bg-gray-900 p-6 rounded-lg w-96">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-14 h-14 rounded-md overflow-hidden bg-gray-700 flex-shrink-0">
