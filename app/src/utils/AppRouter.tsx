@@ -1,0 +1,145 @@
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import LandingPage from "../pages/LandingPage";
+import SearchPage from "../pages/SearchPage";
+import CollectionPage from "../pages/CollectionPage";
+import DashboardPage from "../pages/DashboardPage";
+import AlbumDetailsPage from "../pages/AlbumDetailsPage";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import AuthGuard from "../components/AuthGuard";
+import AboutPage from "../pages/AboutPage";
+import PrivacyPage from "../pages/PrivacyPage";
+import ContactPage from "../pages/ContactPage";
+import FriendsPage from "../pages/FriendsPage";
+import FriendRequestsPage from "../pages/FriendRequestsPage";
+import FriendProfilePage from "../pages/FriendProfilePage";
+import ChatPage from "../pages/ChatPage";
+import NotificationsPage from "../pages/NotificationsPage";
+import FriendsSearchPage from "../pages/FriendsSearchPage";
+import AdminPage from "../pages/AdminPage";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      onSuccess: () => {
+        queryClient.invalidateQueries();
+      },
+      onError: (error) => {
+        console.error("Mutation error:", error);
+      },
+    },
+  },
+});
+
+const AppRouter: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Navbar />
+        <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-900 to-black text-white">
+          <Routes>
+            {/* public routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="album/:id" element={<AlbumDetailsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+
+            {/* protected routes */}
+            <Route
+              path="/collection"
+              element={
+                <AuthGuard>
+                  <CollectionPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <AuthGuard>
+                  <DashboardPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friends"
+              element={
+                <AuthGuard>
+                  <FriendsPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friend-requests"
+              element={
+                <AuthGuard>
+                  <FriendRequestsPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friend/:id"
+              element={
+                <AuthGuard>
+                  <FriendProfilePage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <AuthGuard>
+                  <ChatPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/chat/:id"
+              element={
+                <AuthGuard>
+                  <ChatPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <AuthGuard>
+                  <NotificationsPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/friends/search"
+              element={
+                <AuthGuard>
+                  <FriendsSearchPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AuthGuard requireAdmin>
+                  <AdminPage />
+                </AuthGuard>
+              }
+            />
+          </Routes>
+
+          <Footer />
+        </div>
+      </Router>
+    </QueryClientProvider>
+  );
+};
+
+export default AppRouter;
