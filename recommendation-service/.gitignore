@@ -1,0 +1,6 @@
+db_dump.sql
+.vscode/
+populate_dataset.py
+populate_reviews.py
+recommender2.py
+nowa_baza.sql

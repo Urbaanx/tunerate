@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: dbpassword
+      POSTGRES_DB: tunerate_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbuser"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tunerate_network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - tunerate_network
+
+  recommender:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: recommender
+    restart: always
+    ports:
+      - 8001:8001
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: tunerate_db
+      DB_USER: dbuser
+      DB_PASSWORD: dbpassword
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tunerate_network
+
+networks:
+  tunerate_network:
+    driver: bridge
