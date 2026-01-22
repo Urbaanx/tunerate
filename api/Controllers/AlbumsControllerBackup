@@ -1,0 +1,314 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using tunerate_api.Data;
+using tunerate_api.Services;
+using Microsoft.EntityFrameworkCore;
+using tunerate_api.Models;
+
+namespace tunerate_api.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AlbumsController : ControllerBase
+    {
+        private readonly MusicBrainzService _musicBrainzService;
+        private readonly AppDbContext _context;
+
+        public AlbumsController(MusicBrainzService musicBrainzService, AppDbContext context)
+        {
+            _musicBrainzService = musicBrainzService;
+            _context = context;
+        }
+        
+                // 🆕 GET /api/albums — zwraca wszystkie albumy z lokalnej bazy
+        [HttpGet]
+        public async Task<IActionResult> GetAllAlbums(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string sort = "title_asc",
+            [FromQuery] string? genre = null,
+            [FromQuery] string? artist = null,
+            [FromQuery] int? year = null,
+            [FromQuery] string? popularity = null)
+        {
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 20;
+
+            var query = _context.Albums
+                .Include(a => a.Artist)
+                .Include(a => a.Reviews)
+                .Include(a => a.AlbumTags).ThenInclude(at => at.Tag)
+                .AsQueryable();
+
+            // 🔹 Filtrowanie
+            if (!string.IsNullOrWhiteSpace(artist))
+                query = query.Where(a => EF.Functions.ILike(a.Artist.Name, $"%{artist}%"));
+
+            if (year.HasValue)
+                query = query.Where(a => a.ReleaseDate.Year == year.Value);
+
+            if (!string.IsNullOrWhiteSpace(genre))
+                query = query.Where(a => a.AlbumTags.Any(t => EF.Functions.ILike(t.Tag.Name, $"%{genre}%")));
+
+            // 🔹 Sortowanie
+            query = sort switch
+            {
+                "title_desc" => query.OrderByDescending(a => a.Title),
+                "artist_asc" => query.OrderBy(a => a.Artist.Name),
+                "artist_desc" => query.OrderByDescending(a => a.Artist.Name),
+                "date_desc" => query.OrderByDescending(a => a.ReleaseDate),
+                "date_asc" => query.OrderBy(a => a.ReleaseDate),
+                "rating_desc" => query.OrderByDescending(a => a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : 0),
+                "rating_asc" => query.OrderBy(a => a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : 0),
+                _ => query.OrderBy(a => a.Title)
+            };
+
+            // 🔹 Popularność = liczba recenzji
+            if (popularity == "most_reviewed")
+                query = query.OrderByDescending(a => a.Reviews.Count);
+            else if (popularity == "least_reviewed")
+                query = query.OrderBy(a => a.Reviews.Count);
+
+            var totalCount = await query.CountAsync();
+
+            var albums = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Title,
+                    Artist = a.Artist.Name,
+                    a.CoverUrl,
+                    a.ReleaseDate,
+                    a.ExternalId,
+                    AverageRating = a.Reviews.Any() ? a.Reviews.Average(r => r.Score) : (double?)null,
+                    Tags = a.AlbumTags.Select(at => at.Tag.Name).ToList(),
+                    ReviewsCount = a.Reviews.Count
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                Items = albums,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+            });
+        }
+
+        
+        [HttpGet("all")]
+        //[Authorize]
+        public async Task<IActionResult> GetAllAlbumsFlat()
+        {
+            var albums = await _context.Albums
+                .Include(a => a.Artist)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Title,
+                    Artist = a.Artist.Name
+                })
+                .ToListAsync();
+
+            return Ok(albums);
+        }
+
+        [HttpGet("search")]
+        [Authorize]
+        public async Task<IActionResult> Search(
+            [FromQuery] string query,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string sort = "title_asc")
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Query cannot be empty");
+
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 10;
+
+            // 🔹 Najpierw spróbuj wyszukać albumy w lokalnej bazie danych
+            var localAlbumsQuery = _context.Albums
+                .Where(a =>
+                    EF.Functions.ILike(a.Title, $"%{query}%") ||
+                    EF.Functions.ILike(a.Artist.Name, $"%{query}%"))
+                .AsQueryable();
+
+            // Opcjonalne sortowanie
+            localAlbumsQuery = sort switch
+            {
+                "title_desc" => localAlbumsQuery.OrderByDescending(a => a.Title),
+                "artist_asc" => localAlbumsQuery.OrderBy(a => a.Artist),
+                "artist_desc" => localAlbumsQuery.OrderByDescending(a => a.Artist),
+                _ => localAlbumsQuery.OrderBy(a => a.Title)
+            };
+
+            var totalLocalCount = await localAlbumsQuery.CountAsync();
+            var localAlbums = await localAlbumsQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // 🔹 Jeśli coś znaleziono lokalnie — zwróć od razu
+            if (localAlbums.Any())
+            {
+                return Ok(new
+                {
+                    Items = localAlbums.Select(a => new
+                    {
+                        a.Id,
+                        a.Title,
+                        a.Artist,
+                        a.CoverUrl,
+                        a.ReleaseDate,
+                        a.ExternalId,
+                        a.AverageRating
+                    }),
+                    TotalCount = totalLocalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalLocalCount / pageSize),
+                    Source = "local"
+                });
+            }
+
+            // 🔹 Jeśli brak wyników — spróbuj z MusicBrainz
+            var albumsFromApi = await _musicBrainzService.SearchAlbumsAsync(query, page, pageSize, sort);
+            
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                albumsFromApi.Items,
+                albumsFromApi.TotalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)albumsFromApi.TotalCount / pageSize),
+                Source = "musicbrainz"
+            });
+        }
+        
+        
+        // 🆕 POST /api/albums — tworzy album w bazie, jeśli jeszcze nie istnieje
+        [HttpPost]
+        //[Authorize]
+        public async Task<IActionResult> CreateAlbum([FromBody] AlbumDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Artist))
+                return BadRequest("Tytuł i wykonawca są wymagane.");
+
+            // 🔹 Sprawdź, czy album już istnieje (po externalId lub tytule + artyście)
+            var existingAlbum = await _context.Albums
+                .FirstOrDefaultAsync(a =>
+                    (!string.IsNullOrEmpty(dto.ExternalId) && a.ExternalId == dto.ExternalId) ||
+                    (a.Title == dto.Title && a.Artist.Name == dto.Artist));
+
+            if (existingAlbum != null)
+                return Ok(existingAlbum);
+
+            // 🔹 Znajdź lub utwórz artystę
+            var artist = await _context.Artists.FirstOrDefaultAsync(a => a.Name == dto.Artist);
+            if (artist == null)
+            {
+                artist = new Artist { Name = dto.Artist };
+                _context.Artists.Add(artist);
+                await _context.SaveChangesAsync();
+            }
+
+            // 🔹 Utwórz nowy album
+            var album = new Album
+            {
+                Title = dto.Title,
+                Artist = artist,
+                ArtistId = artist.Id,
+                CoverUrl = dto.CoverUrl,
+                ReleaseDate = Convert.ToDateTime(dto.ReleaseDate),
+                ExternalId = dto.ExternalId
+            };
+
+            _context.Albums.Add(album);
+            await _context.SaveChangesAsync();
+
+            if (!string.IsNullOrEmpty(dto.ExternalId))
+            {
+                var tags = await _musicBrainzService.GetAlbumTagsAsync(dto.ExternalId);
+                foreach (var tagName in tags)
+                {
+                    var existingTag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
+                    if (existingTag == null)
+                    {
+                        existingTag = new Tag { Name = tagName };
+                        _context.Tags.Add(existingTag);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    if (!await _context.AlbumTags.AnyAsync(t => t.AlbumId == album.Id && t.TagId == existingTag.Id))
+                    {
+                        _context.AlbumTags.Add(new AlbumTag
+                        {
+                            AlbumId = album.Id,
+                            TagId = existingTag.Id
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            return CreatedAtAction(nameof(GetAlbumDetails), new { id = album.Id }, new
+            {
+                album.Id,
+                album.Title,
+                Artist = artist.Name,
+                album.CoverUrl,
+                album.ReleaseDate,
+                album.ExternalId
+            });
+        }
+
+
+        [HttpGet("{id}")]
+        [Authorize]
+        public async Task<IActionResult> GetAlbumDetails(Guid id)
+        {
+            var album = await _context.Albums
+                .Include(a => a.Artist)
+                .Include(a => a.Reviews)
+                    .ThenInclude(r => r.User)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (album == null)
+                return NotFound("Nie znaleziono albumu.");
+
+            var avgRating = album.Reviews.Any()
+                ? album.Reviews.Average(r => r.Score)
+                : (double?)null;
+
+            var result = new
+            {
+                album.Id,
+                album.Title,
+                Artist = album.Artist.Name,
+                album.CoverUrl,
+                album.ReleaseDate,
+                AverageRating = avgRating,
+                Reviews = album.Reviews
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Select(r => new
+                    {
+                        r.Id,
+                        User = r.User.Nickname,
+                        UserId = r.User.Id,
+                        r.User.Auth0Id,
+                        r.Content,
+                        r.Score,
+                        r.CreatedAt
+                    })
+            };
+
+            return Ok(result);
+        }
+    }
+}
