@@ -9,7 +9,7 @@ namespace tunerate_api.Models
         public Guid Id { get; set; } = Guid.NewGuid();
         [Column(TypeName = "varchar(255)")]
         public string Title { get; set; } = string.Empty;
-        [Column(TypeName = "varchar(36)")]
+        [Column(TypeName = "varchar(100)")]
         public string? ExternalId { get; set; }
         [Column(TypeName = "date")]
         public DateTime ReleaseDate { get; set; }

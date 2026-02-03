@@ -16,7 +16,7 @@ namespace tunerate_api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "varchar(30)", nullable: false),
+                    Name = table.Column<string>(type: "varchar(100)", nullable: false),
                     ExternalId = table.Column<string>(type: "varchar(100)", nullable: true)
                 },
                 constraints: table =>
@@ -56,7 +56,7 @@ namespace tunerate_api.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "varchar(255)", nullable: false),
-                    ExternalId = table.Column<string>(type: "varchar(36)", nullable: true),
+                    ExternalId = table.Column<string>(type: "varchar(100)", nullable: true),
                     ReleaseDate = table.Column<DateTime>(type: "date", nullable: false),
                     CoverUrl = table.Column<string>(type: "varchar(255)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),

@@ -41,7 +41,7 @@ namespace tunerate_api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ExternalId")
-                        .HasColumnType("varchar(36)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("ReleaseDate")
                         .HasColumnType("date");
@@ -115,7 +115,7 @@ namespace tunerate_api.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
